@@ -236,7 +236,7 @@ def parseArgs(argv):
 	# ++++++Total++++++
 	GroupAdvanced.add_argument('-g', '--gold_standard_version', 
 		help = "The gold standard version of variant detection fitting.", 
-		default = None, 
+		default = "T2T", 
 		type = str)
 	# ++++++INS++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INS', 
