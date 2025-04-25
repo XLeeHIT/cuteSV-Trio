@@ -46,7 +46,7 @@ def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matchin
                 if int(float(gl_split_ls[7])) >= minimum_support_reads_list[0] and int(float(fa_split_ls[7])) <= 0 and int(float(mo_split_ls[7])) <= 0 :
                     gl_split_ls[8] = "1"
             elif "1/1" == family_genotype_ls[0] and ("0/0" == family_genotype_ls[1] or "0/0" == family_genotype_ls[2]):
-                if 0 <= int(float(gl_split_ls[6])) <= 2 and 0 <= int(float(fa_split_ls[7])) <= 3 and 0 <= int(float(mo_split_ls[7])) <= 3 :
+                if 0 <= int(float(gl_split_ls[6])) <= 2 and (0 <= int(float(fa_split_ls[7])) <= 3 or 0 <= int(float(mo_split_ls[7])) <= 3) :
                     gl_split_ls[8] = "2"
             elif family_genotype_ls[0] in ["0/1","1/0"] and "1/1" == family_genotype_ls[1] and "1/1" == family_genotype_ls[2] :
                 if int(float(gl_split_ls[7])) >= minimum_support_reads_list[0] and 0 <= int(float(fa_split_ls[6])) <= 4 and int(float(fa_split_ls[7])) >= minimum_support_reads_list[1] and 0 <= int(float(mo_split_ls[6])) <= 4 and int(float(mo_split_ls[7])) >= minimum_support_reads_list[2] :
