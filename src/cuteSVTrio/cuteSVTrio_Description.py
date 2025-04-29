@@ -56,22 +56,22 @@ def parseArgs(argv):
 
 	# **************Parameters of input******************
 	parser.add_argument('-r', '--reference', 
-		help = "The execute phase.[%(default)s]", 
+		help = "The reference genome in fasta format.", 
 		type = str)
 	parser.add_argument('-o', '--output', 
 		type = str, 
 		help = "Output VCF format file.")
 	parser.add_argument('-w', '--work_dir', 
 		type = str, 
-		help = "Work-directory for distributed jobs")
+		help = "Work-directory for distributed jobs.")
 
 	# ************** Other Parameters******************
 	parser.add_argument('-e', '--execute_stage', 
-		help = "The execute stage.[%(default)s]", 
+		help = "The stage of this operation execution.[%(default)s]", 
 		default = 0, 
 		type = int)
 	parser.add_argument('--performing_phasing',
-		help = "The option of performing phasing.",
+		help = "The option of performing structural variant phasing.",
 		action="store_true")
 	parser.add_argument('--phase_all_ctgs',
 		help = "Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}.",
@@ -93,10 +93,6 @@ def parseArgs(argv):
 		type = str, 
 		help ="Sorted .bam file of mother in family from NGMLR or Minimap2.")
 	
-	parser.add_argument('-mt' ,'--mendel_threshold', 
-		help = "The mendel threshold.[%(default)s]", 
-		default = 0.9, 
-		type = float)
 	parser.add_argument('-t', '--threads', 
 		help = "Number of threads to use.[%(default)s]", 
 		default = 16, 
@@ -168,7 +164,7 @@ def parseArgs(argv):
 	# **************Parameters in clustering******************
 	GroupSVCluster = parser.add_argument_group('Generation of SV clusters')
 	GroupSVCluster.add_argument('-s', '--min_support_list', 
-		help = "Minimum number of reads of each member of family that support a SV to be reported.[%(default)s]",  
+		help = "Minimum number of reads of each member of family that support a SV to be reported.It is recommended to divide the data coverage by 6.[%(default)s]",  
 		type = str)
 	GroupSVCluster.add_argument('-l', '--min_size', 
 		help = "Minimum size of SV to be reported.[%(default)s]", 
@@ -230,7 +226,7 @@ def parseArgs(argv):
 	GroupAdvanced = parser.add_argument_group('Advanced')
 	# ++++++Total++++++
 	GroupAdvanced.add_argument('-p', '--sequencing_platform', 
-		help = "The option of sequencing platform.", 
+		help = "The option of sequencing platform affects a series of parameters in the signature clustering.", 
 		default = None, 
 		type = str)
 	# ++++++Total++++++
