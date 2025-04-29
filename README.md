@@ -23,7 +23,7 @@
 - [Installation](#Installation)
 - [Dependence](#Dependence)
 - [Usage](#Usage)
-- [Quick Demo](#Quick Demo)
+- [QuickDemo](#QuickDemo)
 - [Contact](#Contact)
 
 
@@ -89,7 +89,7 @@ Other parameters can be found by -h/--help.
 
 
 
-## Quick Demo
+## QuickDemo
 
 ```
 demo/fam.1.bam-------------------------The 30X bam of offspring
