@@ -20,10 +20,12 @@
 ## Contents
 
 - [Introduction](#Introduction)
+
 - [Installation](#Installation)
 - [Dependence](#Dependence)
 - [Usage](#Usage)
 - [QuickDemo](#QuickDemo)
+- [Latest Updates](#Latest Updates)
 - [Contact](#Contact)
 
 
@@ -101,15 +103,15 @@ mkdir work/ ;
 cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2T -r demo/ref.fasta -o demo.vcf -w work/ --family_mode M1 --input_offspring demo/fam.1.bam --input_parent_1 demo/fam.2.bam --input_parent_2 demo/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
 ```
 
+## Latest Updates
+
+v0.2.0 (June 10, 2025) : 
+
+1. Add *CorrectType* tags to the SV supplemented by the three trio-based trio SV correction moethods and display them in the output VCF file. 
+2. Add *parents_phasing* parameters to control whether the father and mother phase SV. By default, parents do not perform phasing, which can significantly reduce the spatiotemporal cost of phasing
+
 
 
 ## Contact
 
 For advising, bug reporting and requiring help, please post on [Github Issue](https://github.com/QianZixi/cuteSV-Trio) or contact xinli01@stu.hit.edu.cn.
-
-
-
-
-
-
-
