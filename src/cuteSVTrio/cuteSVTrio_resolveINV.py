@@ -7,7 +7,7 @@ import pickle
 import copy
 import time
 
-def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing, close_NSS, close_ESS):
+def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing):
     '''
     cluster INV
     ************************************************************************
@@ -134,7 +134,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
         #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 1000, 'INS', family_mode, family_member)
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing))
     #logging.info("INV/%s/%d/%s"%(chr,len(candidate_single_SV_gt_fam_ls[0]),str(candidate_single_SV_gt_fam_ls[0][0:10])))
     standard_list = 0
     #logging.info(candidate_single_SV_gt_fam_ls[0][0:10])
@@ -161,8 +161,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     #            logging.info(candidate_single_SV_gt_fam_ls[0][i])
     #            logging.info(candidate_single_SV_gt_fam_ls[1][i])
     #            logging.info(candidate_single_SV_gt_fam_ls[2][i])
-    if not close_ESS :
-        increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INV', minimum_support_reads_list, family_mode, close_NSS)
+    increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INV', minimum_support_reads_list, family_mode)
     #if chr == "2" :
     #    for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
     #        if int(candidate_single_SV_gt_fam_ls[0][i][2]) > 30473576 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 30474576 :
@@ -295,7 +294,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
 def run_inv(args):
     return resolution_INV(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS):
+def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing):
     # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
@@ -330,7 +329,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     read_id_dict = dict()
     for i in range(len(candidate_single_SV)):
         read_id_dict[i] = candidate_single_SV[i][6]
-    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, "INV", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing, close_NSS)
+    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, "INV", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing)
     # [[DV, DR, GT, GL, GQ, QUAL] ...]
     assert len(candidate_single_SV) == len(assign_list), "assign error"
     candidate_single_SV_gt = list()

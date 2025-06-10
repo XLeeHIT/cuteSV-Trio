@@ -73,6 +73,9 @@ def parseArgs(argv):
 	parser.add_argument('--performing_phasing',
 		help = "The option of performing structural variant phasing.",
 		action="store_true")
+	parser.add_argument('--parents_phasing',
+		help = "The option of performing parents' structural variant phasing.",
+		action="store_true")
 	parser.add_argument('--phase_all_ctgs',
 		help = "Call variants on all contigs, otherwise call in chr{1..22,X,Y} and {1..22,X,Y}.",
 		action="store_true")
@@ -121,14 +124,6 @@ def parseArgs(argv):
 	
 	parser.add_argument('--run_TRA',
 		help = "Run calling of TRA/BND.",
-		action="store_true")
-
-	parser.add_argument('--close_NSS',
-		help = "Close the NSS algorithm.",
-		action="store_true")
-	
-	parser.add_argument('--close_ESS',
-		help = "Close the ESS algorithm.",
 		action="store_true")
 
 	# **************Parameters in signatures collection******************
@@ -335,6 +330,7 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##INFO=<ID=RNAMES,Number=.,Type=String,Description=\"Supporting read names of SVs (comma separated)\">\n")
 	file.write("##INFO=<ID=AF,Number=A,Type=Float,Description=\"Allele Frequency.\">\n")
 	file.write("##INFO=<ID=No_Mendel,Number=0,Type=Flag,Description=\"Not in accordance with Mendelian laws of inheritance.\">\n")
+	file.write("##INFO=<ID=CorrectType,Number=1,Type=Integer,Description=\"The trio SV correct type.\">\n")
 	file.write("##INFO=<ID=Denovo,Number=1,Type=Integer,Description=\"The high confidence de novo class.\">\n")
 	file.write("##INFO=<ID=QUALLIST,Number=3,Type=Float,Description=\"Quality of all family members.\">\n")
 	file.write("##INFO=<ID=FILTERLIST,Number=3,Type=String,Description=\"Filter flags for all family members.\">\n")

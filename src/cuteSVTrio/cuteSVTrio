@@ -1225,9 +1225,6 @@ def main_ctrl(args, argv):
 
         logging.info("Clustering structural variants.")
         analysis_pools = Pool(processes=int(args.threads))
-        #logging.info(args.close_NSS)
-        #logging.info(args.close_ESS)
-        #logging.info(args.performing_phasing)
         try :
             # +++++DEL+++++
             for chr in chr_ls["DEL"]:
@@ -1243,11 +1240,8 @@ def main_ctrl(args, argv):
                         args.merge_del_threshold,
                         args.read_pos_interval,
                         args.family_mode,
-                        args.performing_phasing,
-                        args.close_NSS,
-                        args.close_ESS)]
+                        args.performing_phasing)]
                 result.append(analysis_pools.map_async(run_del, para))
-
 
             # +++++INS+++++
             for chr in chr_ls["INS"]:
@@ -1263,13 +1257,11 @@ def main_ctrl(args, argv):
                         args.read_pos_interval,
                         args.family_mode,
                         args.performing_phasing,
-                        args.all_ins_singnature_reads,
-                        args.close_NSS,
-                        args.close_ESS)]
+                        args.all_ins_singnature_reads)]
                 result.append(analysis_pools.map_async(run_ins, para))
                 #logging.info(para)
 
-            
+            '''
             # +++++INV+++++
             for chr in chr_ls["INV"]:
                 para = [(temporary_dir, 
@@ -1282,9 +1274,7 @@ def main_ctrl(args, argv):
                         args.gt_round,
                         args.read_pos_interval,
                         args.family_mode,
-                        args.performing_phasing,
-                        args.close_NSS,
-                        args.close_ESS)]
+                        args.performing_phasing)]
                 result.append(analysis_pools.map_async(run_inv, para))
 
 
@@ -1300,9 +1290,7 @@ def main_ctrl(args, argv):
                         args.gt_round,
                         args.read_pos_interval,
                         args.family_mode,
-                        args.performing_phasing,
-                        args.close_NSS,
-                        args.close_ESS)]
+                        args.performing_phasing)]
                 result.append(analysis_pools.map_async(run_dup, para))
 
 
@@ -1320,10 +1308,9 @@ def main_ctrl(args, argv):
                             args.gt_round,
                             args.read_pos_interval,
                             args.family_mode,
-                            args.performing_phasing,
-                            args.close_NSS,
-                            args.close_ESS)]
+                            args.performing_phasing)]
                     result.append(analysis_pools.map_async(run_tra, para))
+            '''
         finally :
             analysis_pools.close()
             analysis_pools.join()
@@ -1383,7 +1370,8 @@ def main_ctrl(args, argv):
                                                      args.family_mode, 
                                                      args.read_pos_interval,
                                                      minimum_support_reads_list,
-                                                     args.phase_all_ctgs))
+                                                     args.phase_all_ctgs,
+                                                     args.parents_phasing))
             phasing_fam_results=[]
             for family_member_i in range(len(family_member_ls)) :
                 phasing_results = {}
@@ -1411,7 +1399,8 @@ def main_ctrl(args, argv):
                          args.family_mode, 
                          args.read_pos_interval,
                          minimum_support_reads_list,
-                         args.phase_all_ctgs)]
+                         args.phase_all_ctgs,
+                         args.parents_phasing)]
                 result.append(pahsing_pools.map_async(run_phasing, para))
             
             pahsing_pools.close()
@@ -1443,7 +1432,8 @@ def main_ctrl(args, argv):
                                                      args.family_mode, 
                                                      args.read_pos_interval,
                                                      minimum_support_reads_list,
-                                                     args.phase_all_ctgs))
+                                                     args.phase_all_ctgs,
+                                                     args.parents_phasing))
             no_phasing_fam_results=[]
             for family_member_i in range(len(family_member_ls)) :
                 no_phasing_results = {}

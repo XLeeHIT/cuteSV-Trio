@@ -19,7 +19,7 @@ import time
 '''
 def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
                    minimum_support_reads_list, gt_round, remain_reads_ratio, merge_del_threshold, 
-                   read_pos_interval, family_mode, performing_phasing, close_NSS, close_ESS):
+                   read_pos_interval, family_mode, performing_phasing):
 
     '''
     cluster DEL
@@ -207,7 +207,7 @@ def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
         #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 1000, 'INS', family_mode, family_member)
         #logging.info("%s/%d/%d"%(chr,len(candidate_single_SV_fam_ls),len(reads_list_fam_ls)))
         #candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'DEL', family_mode, family_member, reads_list_fam_ls[i], minimum_support_reads_list, performing_phasing))
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'DEL', family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'DEL', family_mode, family_member, minimum_support_reads_list, performing_phasing))
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
     #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) > 84517825 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 84518025:
     #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
@@ -254,19 +254,22 @@ def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
         logging.info("%s/%s"%(chr,str(len(wrong_read_sv_ls))))
     '''
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 31904967 :
+    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 2891223 :
     #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-    if not close_ESS :
-        increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DEL', minimum_support_reads_list, family_mode, close_NSS)    # 使用ESS算法
+    increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DEL', minimum_support_reads_list, family_mode)    # 使用ESS算法
+    
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 31904967 :
+    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 2891223 :
     #        logging.info("2%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
+    
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'DEL', family_mode)
     if not performing_phasing and family_mode == "M1" :
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+    
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 31904967 :
+    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 2891223 :
     #        logging.info("3%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
+    
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
     #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) > 84517825 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 84518025:
     #        logging.info("2%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
@@ -423,7 +426,7 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
 
 def resolution_INS(path, chr, read_count, threshold_gloab, 
                    max_cluster_bias, minimum_support_reads_list, gt_round, remain_reads_ratio, merge_INS_threshold, 
-                   read_pos_interval, family_mode, performing_phasing, all_ins_singnature_reads, close_NSS, close_ESS):
+                   read_pos_interval, family_mode, performing_phasing, all_ins_singnature_reads):
     
     '''
     cluster INS
@@ -651,7 +654,7 @@ def resolution_INS(path, chr, read_count, threshold_gloab,
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
         #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 1000, 'INS', family_mode, family_member)
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'INS', family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'INS', family_mode, family_member, minimum_support_reads_list, performing_phasing))
     #logging.info("INS/%s/%d/%s"%(chr,len(candidate_single_SV_gt_fam_ls[0]),str(candidate_single_SV_gt_fam_ls[0][0:10])))
     # 如果某个个体中完全没有某条染色体的信号，那么对应的，call_gt返回的列表为[]，为了保证一致性，需要进行修改
     standard_list = 0
@@ -682,8 +685,7 @@ def resolution_INS(path, chr, read_count, threshold_gloab,
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
     #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 57600203 :
     #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-    if not close_ESS :
-        increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INS', minimum_support_reads_list, family_mode, close_NSS)
+    increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INS', minimum_support_reads_list, family_mode)
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
     #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 57600203 :
     #        logging.info("2%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
@@ -994,7 +996,7 @@ def run_del(args):
 def run_ins(args):
     return resolution_INS(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, svtype, family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS):
+def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, svtype, family_mode, family_member, minimum_support_reads_list, performing_phasing):
     # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
@@ -1040,7 +1042,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     #if chr == '1' and svtype == 'INS' :
     #    logging.info(assign_list)
     
-    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing, close_NSS)
+    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing)
     '''
     for i in range(len(candidate_single_SV)):
         if int(candidate_single_SV[i][2]) == 142536872 :

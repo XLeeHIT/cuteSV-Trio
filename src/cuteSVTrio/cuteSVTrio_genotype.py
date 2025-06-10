@@ -32,7 +32,7 @@ def rescale_read_counts(c0, c1, max_allowed_reads=100):
     return c0, c1
 
 # 修改该函数的返回内容，由PL改为GL_P，cal_GL_3得到三个基因型的可能性
-def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len, close_NSS):
+def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len):
     t0, t1 = c0, c1
     # 保证每个个体的c1不少于最少数量，但是如果sv长度过长(>=1500)，就不再受限
     if c0 + c1 != 0 and c1 < minimum_support_reads and sv_len is None and svtype != "TRA":
@@ -44,10 +44,7 @@ def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len, close_NSS):
             return '0/0',"0,100,100,0,0,0,0,0,-1",996,0
     else :
         if c0 == 0 and c1 == 0 :
-            if close_NSS :
-                return '0/0',"0,100,100,0,0,0,0,0,0",996,0    # 不使用NSS
-            else :
-                return '1/1',"100,100,0,1,1,0,0,0,-1",996,255    # 使用NSS
+            return '1/1',"100,100,0,1,1,0,0,0,-1",996,255    # 使用NSS
             #return '0/0',"0,100,100,0,0,0,0,0,0",996,0    # 不使用NSS
     # c0无变异信号read，c1有变异信号read
     c0, c1 = rescale_read_counts(c0, c1) # DR, DV
@@ -72,6 +69,30 @@ def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len, close_NSS):
     #    logging.info("%f,%f,%f,%f"%(b**2 - 4*a*c,GL_P[0],GL_P[1],GL_P[2]))
     # 最后一位作为denovo记录的预留位
     return Genotype[prob.index(max(prob))], "%d,%d,%d,%f,%f,%d,%f,%f,0"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, p_data, t0, t1), max(GQ), QUAL
+
+def cal_Gl_3_sim(c0, c1) :
+    c0, c1 = rescale_read_counts(c0, c1) # DR, DV
+    
+    ori_GL00 = np.float64(pow((1-err), c0)*pow(err, c1)*(1-prior)/2)
+    ori_GL11 = np.float64(pow(err, c0)*pow((1-err), c1)*(1-prior)/2)
+    ori_GL01 = np.float64(pow(0.5, c0+c1)*prior)
+    prob = list(normalize_log10_probs([log10(ori_GL00), log10(ori_GL01), log10(ori_GL11)]))
+    GL_P = [pow(10, i) for i in prob]
+    PL = [int(np.around(-10*log10(i))) for i in GL_P]
+    GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
+    QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
+    p_data = ori_GL00+ori_GL01+ori_GL11
+    p_data = int(np.around(-10*log10(p_data)))
+    a = 1
+    b = GL_P[0] - GL_P[2] - 1
+    c = GL_P[2]
+    roots = np.roots([a, b, c])
+    #logging.info(roots[0].real)
+    #logging.info(roots[1].real)
+    #if b**2 - 4*a*c < deta_limit :
+    #    logging.info("%f,%f,%f,%f"%(b**2 - 4*a*c,GL_P[0],GL_P[1],GL_P[2]))
+    # 最后一位作为denovo记录的预留位
+    return "%f,%f,%f"%(log10(GL_P[0]), log10(GL_P[1]), log10(GL_P[2]))
 
 #cal_GL_2得到单支基因型的编译可能性
 def cal_GL_2(c0, c1) :
@@ -194,7 +215,7 @@ def overlap_cover(svs_list, reads_list, performing_phasing):
     # return iteration_dict, primary_num_dict, cover2_dict
     return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict, cover_pos_dict
 
-def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads, performing_phasing, close_NSS):
+def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads, performing_phasing):
     assign_list = list()
     for idx in read_id_dict:
         cover_not_sv_read = []
@@ -217,7 +238,7 @@ def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_
                     if performing_phasing :
                         cover_not_sv_read.append(query)
                         cover_not_sv_pos.append(pos_count[j])
-        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_dict[idx]), svtype, minimum_support_reads, None, close_NSS)
+        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_dict[idx]), svtype, minimum_support_reads, None)
         if performing_phasing :
             if len(cover_not_sv_read) != len(cover_not_sv_pos) :
                 logging.info("%d/%d"%(len(cover_not_sv_read),len(cover_not_sv_pos)))
@@ -327,6 +348,8 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
             #if i[9].split(",")[8] == "0" :
             #    info_list = info_list + ";No_Mendel" 
             #logging.info(i)
+            if res_i[9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -387,6 +410,8 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=" + str(round(int(res_i[4]) / (int(res_i[4]) + int(res_i[7])), 4))
             except:
                 info_list += ";AF=."
+            if res_i[9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -450,6 +475,8 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             #if i[8].split(",")[8] == "0" :
             #    info_list = info_list + ";No_Mendel" 
+            if res_i[9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -511,6 +538,8 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             #if i[8].split(",")[8] == "0" :
             #    info_list = info_list + ";No_Mendel" 
+            if res_i[9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -1055,7 +1084,7 @@ def modify_gl_string(candidate_single_SV,svtype) :
     candidate_single_SV[qual_index] = str(abs(np.around(-10*log10(GL_P[0]), 1)))
 
 # 按照父母的信息，修正信号read过少，导致的fn
-def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimum_support_reads_list, family_mode, close_NSS) :
+def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimum_support_reads_list, family_mode) :
     sv_len_distance_threshold = 0.2
     gl_index = 9
     gt_index = 8
@@ -1065,6 +1094,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
     non_read_nameds_index = 16
     non_read_poss_index = 17
     process_thres = 0
+    modify_rate = 1
     if svtype not in ["DEL","INS","INV","DUP"] :
         return
     #if svtype in ["DEL","INS"] :
@@ -1080,17 +1110,24 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
             sv_gl_fam.append([int(float(v)) for v in candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[6:8]])
             sv_gl_fam.append([int(float(v)) for v in candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[6:8]])
             sv_gl_fam.append([int(float(v)) for v in candidate_single_SV_gt_fam_ls[2][i][gl_index].split(",")[6:8]])
+            sv_gp_fam = []
+            member_gp = [pow(10,int(float(v)/-10)) for v in candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[0:3]]
+            sv_gp_fam.append([v/sum(member_gp) for v in member_gp])
+            member_gp = [pow(10,int(float(v)/-10)) for v in candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[0:3]]
+            sv_gp_fam.append([v/sum(member_gp) for v in member_gp])
+            member_gp = [pow(10,int(float(v)/-10)) for v in candidate_single_SV_gt_fam_ls[2][i][gl_index].split(",")[0:3]]
+            sv_gp_fam.append([v/sum(member_gp) for v in member_gp])
             fam_sv_len = [int(x) for x in candidate_single_SV_gt_fam_ls[0][i][sv_len_index].split(",")]
             
-            #if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 168024558:
-            #    logging.info("2%s"%(str(sv_gl_fam)))
             # 变异位点信号总数超过minimum_support_reads，某个个体信号总数小于minimum_support_reads，但是变异长度超过1500，不再强制为0/0
             for j in range(3) :
                 if minimum_support_reads_list[j] < process_thres :
                     continue
                 if (sv_gl_fam[j][0]+sv_gl_fam[j][1]) != 0 and sv_gl_fam[j][1] < minimum_support_reads_list[j] and fam_sv_len[j] > length_limit :
-                    _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j], close_NSS)
-                    candidate_single_SV_gt_fam_ls[j][i][gl_index] = gl_str
+                    _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j])
+                    gl_str_split = gl_str.split(",")
+                    gl_str_split[8] = "-2"
+                    candidate_single_SV_gt_fam_ls[j][i][gl_index] = ",".join(gl_str_split)
                     candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(GQ)
                     candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(QUAL)
                     gt1 = float(gl_str.split(",")[3])
@@ -1102,25 +1139,31 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                     else :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/0'
                     
-            '''
+            
             # 处理c0，c1全为0的情况
-            # 之前的c0的计算方式是跨过整个变异长度，但如果变异长度过长，可能发生在变异位点附近有序列，但是序列不够长以足够跨过整个变异的情况出现，所以在c0，c1都为0对的情况下，按照前后一百的位置重新统计两个值
+            # 之前的c0的计算方式是跨过整个变异长度，但如果变异长度过长，可能发生在变异位点附近有序列，但是序列不够长以足够跨过整个变异的情况出现，所以在c0，c1都为0的情况下
+            # 由于完全没有实际read信息，所以使用理论的mendel修正
             for j in range(3) :
-                #logging.info(candidate_single_SV_gt_fam_ls[j][i])
-                if sv_gl_fam[j][0]+sv_gl_fam[j][1] == 0 and abs(int(candidate_single_SV_gt_fam_ls[j][i][3])) > 2000 :
-                    #logging.info(candidate_single_SV_gt_fam_ls[j][i])
-                    svs_list = list()
-                    svs_list.append((max(int(candidate_single_SV_gt_fam_ls[j][i][2]) - 50, 0), int(candidate_single_SV_gt_fam_ls[j][i][2]) + 150, int(candidate_single_SV_gt_fam_ls[j][i][3])))
-                    iteration_dict, primary_num_dict, cover_dict, overlap_dict, cover_pos_dict = overlap_cover(svs_list, reads_list_fam_ls[j])
-                    if len(cover_dict[0]) != 0 :
-                        _,gl_str,GQ,QUAL = cal_GL_3(0,len(cover_dict[0]), svtype, minimum_support_reads_list[j], None)
-                        candidate_single_SV_gt_fam_ls[j][i][gt_index] = '0/0'
-                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = gl_str
-                        candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(GQ)
-                        candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(QUAL)
-                        candidate_single_SV_gt_fam_ls[j][i][non_read_nameds_index] = ",".join(cover_dict[0])
-                        candidate_single_SV_gt_fam_ls[j][i][non_read_poss_index] = ",".join([str(x) for x in cover_pos_dict[0]])
-            '''
+                if sv_gl_fam[j][0]+sv_gl_fam[j][1] == 0 :
+                    # 如果是子代，就使用父母本通过完全理论上的Mendel遗传定律确定子代基因型；如果是父母本，就和子代保持一致
+                    if j == 0 :
+                        gpf = sv_gp_fam[1][1]/2 + sv_gp_fam[1][2]
+                        gpm = sv_gp_fam[2][1]/2 + sv_gp_fam[2][2]
+                        GL_P = [(1-gpf)*(1-gpm),gpf*(1-gpm)+(1-gpf)*gpm,gpf*gpm]
+                        GL_P = [v/sum(GL_P) for v in GL_P]
+                    else :
+                        GL_P = [v/sum(sv_gp_fam[0]) for v in sv_gp_fam[0]]
+                    if GL_P.index(max(GL_P)) == 2 :
+                        candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/1'
+                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-1"
+                        candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
+                        candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
+                    else :
+                        candidate_single_SV_gt_fam_ls[j][i][gt_index] = '0/1'
+                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-1"
+                        candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
+                        candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
+
             # 信号数量足够多，但是gt的基因型确定过程中置信度不够
             # 处理孩子
             if minimum_support_reads_list[0] < process_thres :
@@ -1139,19 +1182,39 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                     if new_c0 == sv_gl_fam[0][0] and new_c1 == sv_gl_fam[0][1] :
                         pass
                     else :
-                        _,gl_str,GQ,QUAL = cal_GL_3(new_c0,new_c1, svtype, minimum_support_reads_list[0], fam_sv_len[0], close_NSS)
-                        gl_str_split = gl_str.split(",")
-                        gl_str_split[8] = "-1"
-                        gl_str = ",".join(gl_str_split)
-                        gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        if gl_str_split.index(max(gl_str_split)) > 0 :
+                        gl_str = cal_Gl_3_sim(new_c0,new_c1)
+                        modify_fam_gp = [pow(10,float(v)) for v in gl_str.split(",")[0:3]]
+                        modify_fam_gp = [v/sum(modify_fam_gp) for v in modify_fam_gp]
+                        old_gp = sv_gp_fam[0]
+                        GL_P = [old_gp[v]*(1-modify_rate)+modify_fam_gp[v]*modify_rate for v in range(len(old_gp))]
+                        GL_P = [v/sum(GL_P) for v in GL_P]
+                        PL = [int(np.around(-10*log10(i))) for i in GL_P]
+                        GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
+                        QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
+                        a = 1
+                        b = GL_P[0] - GL_P[2] - 1
+                        c = GL_P[2]
+                        roots = np.roots([a, b, c])
+                        if GL_P.index(max(GL_P)) > 0 :
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[5]), sv_gl_fam[0][0], sv_gl_fam[0][1])
                             candidate_single_SV_gt_fam_ls[0][i][gl_index] = gl_str
-                            if gl_str_split.index(max(gl_str_split)) == 1 :
-                                candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/0'
-                            else :
-                                candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/1'
-                            candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
+                            candidate_single_SV_gt_fam_ls[0][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
+                            candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
+
+                        #_,gl_str,GQ,QUAL = cal_GL_3(new_c0,new_c1, svtype, minimum_support_reads_list[0], fam_sv_len[0])
+                        #gl_str_split = gl_str.split(",")
+                        #gl_str_split[8] = "-1"
+                        #gl_str = ",".join(gl_str_split)
+                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
+                        #if gl_str_split.index(max(gl_str_split)) > 0 :
+                        #    candidate_single_SV_gt_fam_ls[0][i][gl_index] = gl_str
+                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
+                        #        candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/0'
+                        #    else :
+                        #        candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/1'
+                        #    candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
+                        #    candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
 
             # 处理父母
             if minimum_support_reads_list[1] < process_thres :
@@ -1160,38 +1223,78 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 supple_support_reads_threshold = max(ceil(minimum_support_reads_list[1]/2),2)
                 if (candidate_single_SV_gt_fam_ls[1][i][gt_index] == '0/0' or (svtype in ["INS","DEL","INV","DUP"] and float(candidate_single_SV_gt_fam_ls[1][i][qual_index]) < 5)) and sv_gl_fam[1][1] >= supple_support_reads_threshold:
                     if candidate_single_SV_gt_fam_ls[0][i][gt_index] != '0/0' :
-                        _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1], svtype, minimum_support_reads_list[1], fam_sv_len[0], close_NSS)
-                        gl_str_split = gl_str.split(",")
-                        gl_str_split[8] = "-1"
-                        gl_str = ",".join(gl_str_split)
-                        gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
+                        gl_str = cal_Gl_3_sim(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1])
+                        modify_fam_gp = [pow(10,float(v)) for v in gl_str.split(",")[0:3]]
+                        modify_fam_gp = [v/sum(modify_fam_gp) for v in modify_fam_gp]
+                        old_gp = sv_gp_fam[1]
+                        GL_P = [old_gp[v]*(1-modify_rate)+modify_fam_gp[v]*modify_rate for v in range(len(old_gp))]
+                        GL_P = [v/sum(GL_P) for v in GL_P]
+                        PL = [int(np.around(-10*log10(i))) for i in GL_P]
+                        GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
+                        QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
+                        a = 1
+                        b = GL_P[0] - GL_P[2] - 1
+                        c = GL_P[2]
+                        roots = np.roots([a, b, c])
+                        if GL_P.index(max(GL_P)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[5]), sv_gl_fam[1][0], sv_gl_fam[1][1])
                             candidate_single_SV_gt_fam_ls[1][i][gl_index] = gl_str
-                            if gl_str_split.index(max(gl_str_split)) == 1 :
-                                candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/0'
-                            else :
-                                candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/1'
-                            candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(GQ)
+                            candidate_single_SV_gt_fam_ls[1][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
+                            candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[1][i][qual_index] = str(QUAL)
+
+                        #_,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1], svtype, minimum_support_reads_list[1], fam_sv_len[0])
+                        #gl_str_split = gl_str.split(",")
+                        #gl_str_split[8] = "-1"
+                        #gl_str = ",".join(gl_str_split)
+                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
+                        #if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
+                        #    candidate_single_SV_gt_fam_ls[1][i][gl_index] = gl_str
+                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
+                        #        candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/0'
+                        #    else :
+                        #        candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/1'
+                        #    candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(GQ)
+                        #    candidate_single_SV_gt_fam_ls[1][i][qual_index] = str(QUAL)
             if minimum_support_reads_list[2] < process_thres :
                 pass
             else :
                 supple_support_reads_threshold = max(ceil(minimum_support_reads_list[2]/2),2)
                 if (candidate_single_SV_gt_fam_ls[2][i][gt_index] == '0/0' or (svtype in ["INS","DEL","INV","DUP"] and float(candidate_single_SV_gt_fam_ls[2][i][qual_index]) < 5)) and sv_gl_fam[2][1] >= supple_support_reads_threshold:
                     if candidate_single_SV_gt_fam_ls[0][i][gt_index] != '0/0' :
-                        _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[2][0],sv_gl_fam[0][1]+sv_gl_fam[2][1], svtype, minimum_support_reads_list[2], fam_sv_len[0], close_NSS)
-                        gl_str_split = gl_str.split(",")
-                        gl_str_split[8] = "-1"
-                        gl_str = ",".join(gl_str_split)
-                        gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[2]) / max(fam_sv_len[0],fam_sv_len[2])) < sv_len_distance_threshold:
+                        gl_str = cal_Gl_3_sim(sv_gl_fam[0][0]+sv_gl_fam[2][0],sv_gl_fam[0][1]+sv_gl_fam[2][1])
+                        modify_fam_gp = [pow(10,float(v)) for v in gl_str.split(",")[0:3]]
+                        modify_fam_gp = [v/sum(modify_fam_gp) for v in modify_fam_gp]
+                        old_gp = sv_gp_fam[2]
+                        GL_P = [old_gp[v]*(1-modify_rate)+modify_fam_gp[v]*modify_rate for v in range(len(old_gp))]
+                        GL_P = [v/sum(GL_P) for v in GL_P]
+                        PL = [int(np.around(-10*log10(i))) for i in GL_P]
+                        GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
+                        QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
+                        a = 1
+                        b = GL_P[0] - GL_P[2] - 1
+                        c = GL_P[2]
+                        roots = np.roots([a, b, c])
+                        if GL_P.index(max(GL_P)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[2]) / max(fam_sv_len[0],fam_sv_len[2])) < sv_len_distance_threshold:
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[2][i][gl_index].split(",")[5]), sv_gl_fam[2][0], sv_gl_fam[2][1])
                             candidate_single_SV_gt_fam_ls[2][i][gl_index] = gl_str
-                            if gl_str_split.index(max(gl_str_split)) == 1 :
-                                candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/0'
-                            else :
-                                candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/1'
-                            candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(GQ)
+                            candidate_single_SV_gt_fam_ls[2][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
+                            candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[2][i][qual_index] = str(QUAL)
+
+                        #_,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[2][0],sv_gl_fam[0][1]+sv_gl_fam[2][1], svtype, minimum_support_reads_list[2], fam_sv_len[0])
+                        #gl_str_split = gl_str.split(",")
+                        #gl_str_split[8] = "-1"
+                        #gl_str = ",".join(gl_str_split)
+                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
+                        #if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[2]) / max(fam_sv_len[0],fam_sv_len[2])) < sv_len_distance_threshold:
+                        #    candidate_single_SV_gt_fam_ls[2][i][gl_index] = gl_str
+                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
+                        #        candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/0'
+                        #    else :
+                        #        candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/1'
+                        #    candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(GQ)
+                        #    candidate_single_SV_gt_fam_ls[2][i][qual_index] = str(QUAL)
             for j in range(len(candidate_single_SV_gt_fam_ls)) :
                 gl_ls = [round(float(x)) for x in candidate_single_SV_gt_fam_ls[j][i][gl_index].split(",")[3:5]]
                 candidate_single_SV_gt_fam_ls[j][i][gt_index] = str(max(gl_ls))+"/"+str(min(gl_ls))
@@ -1206,7 +1309,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 if minimum_support_reads_list[j] < process_thres :
                     continue
                 if (sv_gl_fam[j][0]+sv_gl_fam[j][1]) != 0 and sv_gl_fam[j][1] < minimum_support_reads_list[j] and fam_sv_len[j] > length_limit :
-                    _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j], close_NSS)
+                    _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j])
                     candidate_single_SV_gt_fam_ls[j][i][gl_index] = gl_str
                     candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(GQ)
                     candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(QUAL)
@@ -1233,7 +1336,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                     if new_c0 == sv_gl_fam[0][0] and new_c1 == sv_gl_fam[0][1] :
                         pass
                     else :
-                        _,gl_str,GQ,QUAL = cal_GL_3(new_c0,new_c1, svtype, minimum_support_reads_list[0], fam_sv_len[0], close_NSS)
+                        _,gl_str,GQ,QUAL = cal_GL_3(new_c0,new_c1, svtype, minimum_support_reads_list[0], fam_sv_len[0])
                         gl_str_split = gl_str.split(",")
                         gl_str_split[8] = "-1"
                         gl_str = ",".join(gl_str_split)
@@ -1253,7 +1356,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 supple_support_reads_threshold = max(ceil(minimum_support_reads_list[1]/2),2)
                 if (candidate_single_SV_gt_fam_ls[1][i][gt_index] == '0/0' or (svtype in ["INS","DEL","INV","DUP"] and float(candidate_single_SV_gt_fam_ls[1][i][qual_index]) < 5)) and sv_gl_fam[1][1] >= supple_support_reads_threshold:
                     if candidate_single_SV_gt_fam_ls[0][i][gt_index] != '0/0' :
-                        _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1], svtype, minimum_support_reads_list[1], fam_sv_len[0], close_NSS)
+                        _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1], svtype, minimum_support_reads_list[1], fam_sv_len[0])
                         gl_str_split = gl_str.split(",")
                         gl_str_split[8] = "-1"
                         gl_str = ",".join(gl_str_split)

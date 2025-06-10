@@ -40,7 +40,7 @@ def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matchin
             # denovo=2:0/1->1/1
             # denovo=3:1/1->0/1
             # denovo=4:0/1->0/0
-            if gl_split_ls[8] == "-1" or fa_split_ls[8] == "-1" or mo_split_ls[8] == "-1" :
+            if gl_split_ls[8] in ["-1","-2","-3"] or fa_split_ls[8] in ["-1","-2","-3"] or mo_split_ls[8] in ["-1","-2","-3"] :
                 continue
             if family_genotype_ls[0] in ["0/1","1/0"] and "0/0" == family_genotype_ls[1] and "0/0" == family_genotype_ls[2] :
                 if int(float(gl_split_ls[7])) >= minimum_support_reads_list[0] and int(float(fa_split_ls[7])) <= 0 and int(float(mo_split_ls[7])) <= 0 :

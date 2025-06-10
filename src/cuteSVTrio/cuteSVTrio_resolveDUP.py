@@ -7,7 +7,7 @@ import pickle
 import copy
 import time
 
-def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing, close_NSS, close_ESS):
+def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing):
     start_time = time.time()
     semi_dup_cluster = list()
     semi_dup_cluster.append([0, 0, ''])
@@ -118,7 +118,7 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
         #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 100, 'INS', family_mode, family_member)
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing))
     #logging.info("DUP/%s/%d/%s"%(chr,len(candidate_single_SV_gt_fam_ls[0]),str(candidate_single_SV_gt_fam_ls[0][0:10])))
     #logging.info(candidate_single_SV_gt_fam_ls)
     standard_list = 0
@@ -142,8 +142,7 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
     #logging.info("%s/%s"%(chr,str(candidate_single_SV_gt_fam_ls)))
     #if chr == "1" :
     #    logging.info(candidate_single_SV_gt_fam_ls)
-    if not close_ESS :
-        increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DUP', minimum_support_reads_list, family_mode, close_NSS)
+    increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DUP', minimum_support_reads_list, family_mode)
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'DUP', family_mode)
     if not performing_phasing and family_mode == "M1" :
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
@@ -230,7 +229,7 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
 def run_dup(args):
     return resolution_DUP(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing, close_NSS):
+def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing):
     # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
@@ -266,7 +265,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     read_id_dict = dict()
     for i in range(len(candidate_single_SV)):
         read_id_dict[i] = candidate_single_SV[i][4]
-    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, "DUP", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing, close_NSS)
+    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, "DUP", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing)
     # [[DV, DR, GT, GL, GQ, QUAL] ...]
     assert len(candidate_single_SV) == len(assign_list), "assign error"
     candidate_single_SV_gt = list()

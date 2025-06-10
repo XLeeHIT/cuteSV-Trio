@@ -16,7 +16,7 @@ import time
             *****************************
             '''
 
-def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, minimum_support_reads_list, bam_path_list, gt_round, read_pos_interval, family_mode, performing_phasing, close_NSS, close_ESS):
+def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, minimum_support_reads_list, bam_path_list, gt_round, read_pos_interval, family_mode, performing_phasing):
     start_time = time.time()
     semi_tra_cluster = list()
     semi_tra_cluster.append([0,0,'','N'])
@@ -145,8 +145,7 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
                                                    candidate_single_SV_fam_ls[i][j][3], 
                                                    set(candidate_single_SV_fam_ls[i][j][12].split(",")), 
                                                    max_cluster_bias, 
-                                                   gt_round, 
-                                                   close_NSS)
+                                                   gt_round)
             candidate_single_SV_fam_ls[i][j][7:12] = [str(DR),str(GT),str(GL),str(GQ),str(QUAL)]
     # Todo:如果所有个体的sv质量控制都是q5，那么删除该记录，否则会有大量的多余BND 
     #logging.info(candidate_single_SV_fam_ls)
@@ -322,7 +321,7 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 def run_tra(args):
     return resolution_TRA(*args)
 
-def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias, gt_round, close_NSS):
+def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias, gt_round):
     import pysam
     bamfile = pysam.AlignmentFile(bam_path)
     querydata = set()
@@ -351,7 +350,7 @@ def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias
         for query in querydata:
             if query not in read_id_list:
                 DR += 1
-        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_list), "TRA", 0, None, close_NSS)
+        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_list), "TRA", 0, None)
 
     else:
         search_start = max(int(pos_2) - max_cluster_bias, 0)
@@ -368,7 +367,7 @@ def call_gt(bam_path, pos_1, pos_2, chr_1, chr_2, read_id_list, max_cluster_bias
         for query in querydata:
             if query not in read_id_list:
                 DR += 1
-        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_list), "TRA", 0, None, close_NSS)
+        GT, GL, GQ, QUAL = cal_GL_3(DR, len(read_id_list), "TRA", 0, None)
 
     bamfile.close()
     return len(read_id_list), DR, GT, GL, GQ, QUAL

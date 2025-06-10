@@ -118,7 +118,7 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
 def gt_homozygous(genotype_ls) :
     return max(abs(genotype_ls[0]-1),abs(genotype_ls[1]-1)) < genotype_threshold or max(abs(genotype_ls[0]-0),abs(genotype_ls[1]-0)) < genotype_threshold
 
-def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read_pos_interval, minimum_support_reads_list, phase_all_ctgs) :
+def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read_pos_interval, minimum_support_reads_list, phase_all_ctgs, parents_phasing) :
     start_time = time.time()
     #logging.info("Phasing starting of %s:%f."%(chr, time.time()-start_time))
     chr_ls = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"]
@@ -139,7 +139,6 @@ def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read
                                                                                                    read_to_var_list, 
                                                                                                    read_to_non_list, 
                                                                                                    1)
-        #logging.info("Phasing state 1 of %s:%f."%(chr, time.time()-start_time))
         phased_sv_haplotype_child_father,phased_sv_haplotype_child_mother = genetic_phasing_member(chr, 
                                                                                                    candidate_single_SV_gt_fam_ls, 
                                                                                                    phased_sv_haplotype_child_father, 
@@ -150,84 +149,60 @@ def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read
                                                                                                    read_to_var_list, 
                                                                                                    read_to_non_list, 
                                                                                                    2)
-        #logging.info("Phasing state 2 of %s:%f."%(chr, time.time()-start_time))
-        read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[1], family_mode, read_pos_interval)
-        phased_sv_haplotype_father_inher = []
-        phased_sv_haplotype_father_forgo = []
-        phased_sv_haplotype_father_inher,phased_sv_haplotype_father_forgo = genetic_phasing_member(chr, 
-                                                                                                   candidate_single_SV_gt_fam_ls, 
-                                                                                                   phased_sv_haplotype_father_inher, 
-                                                                                                   phased_sv_haplotype_father_forgo, 
-                                                                                                   family_mode, 
-                                                                                                   "2", 
-                                                                                                   read_pos_interval, 
-                                                                                                   read_to_var_list, 
-                                                                                                   read_to_non_list, 
-                                                                                                   1)
-        #logging.info("Phasing state 3 of %s:%f."%(chr, time.time()-start_time))
-        phased_sv_haplotype_father_inher,phased_sv_haplotype_father_forgo = genetic_phasing_member(chr, 
-                                                                                                   candidate_single_SV_gt_fam_ls, 
-                                                                                                   phased_sv_haplotype_father_inher, 
-                                                                                                   phased_sv_haplotype_father_forgo, 
-                                                                                                   family_mode, 
-                                                                                                   "2", 
-                                                                                                   read_pos_interval, 
-                                                                                                   read_to_var_list, 
-                                                                                                   read_to_non_list, 
-                                                                                                   2)
-        #logging.info("Phasing state 4 of %s:%f."%(chr, time.time()-start_time))
-        phased_sv_haplotype_mother_inher = []
-        phased_sv_haplotype_mother_forgo = []
-        if family_mode == "M1" :
-            read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[2], family_mode, read_pos_interval)
-            phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo = genetic_phasing_member(chr, 
+        if parents_phasing :
+            read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[1], family_mode, read_pos_interval)
+            phased_sv_haplotype_father_inher = []
+            phased_sv_haplotype_father_forgo = []
+            phased_sv_haplotype_father_inher,phased_sv_haplotype_father_forgo = genetic_phasing_member(chr, 
                                                                                                        candidate_single_SV_gt_fam_ls, 
-                                                                                                       phased_sv_haplotype_mother_inher, 
-                                                                                                       phased_sv_haplotype_mother_forgo, 
+                                                                                                       phased_sv_haplotype_father_inher, 
+                                                                                                       phased_sv_haplotype_father_forgo, 
                                                                                                        family_mode, 
-                                                                                                       "3", 
+                                                                                                       "2", 
                                                                                                        read_pos_interval, 
                                                                                                        read_to_var_list, 
                                                                                                        read_to_non_list, 
                                                                                                        1)
-            #logging.info("Phasing state 5 of %s:%f."%(chr, time.time()-start_time))
-            phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo = genetic_phasing_member(chr, 
+            phased_sv_haplotype_father_inher,phased_sv_haplotype_father_forgo = genetic_phasing_member(chr, 
                                                                                                        candidate_single_SV_gt_fam_ls, 
-                                                                                                       phased_sv_haplotype_mother_inher, 
-                                                                                                       phased_sv_haplotype_mother_forgo, 
+                                                                                                       phased_sv_haplotype_father_inher, 
+                                                                                                       phased_sv_haplotype_father_forgo, 
                                                                                                        family_mode, 
-                                                                                                       "3", 
+                                                                                                       "2", 
                                                                                                        read_pos_interval, 
                                                                                                        read_to_var_list, 
                                                                                                        read_to_non_list, 
                                                                                                        2)
-            #logging.info("Phasing state 6 of %s:%f."%(chr, time.time()-start_time))
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, family_mode, "1")
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, family_mode, "2")
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, "3")
-        #verify_haplotype_consistency(chr,
-        #                             candidate_single_SV_gt_fam_ls, 
-        #                             phased_sv_haplotype_child_father, 
-        #                             phased_sv_haplotype_child_mother, 
-        #                             phased_sv_haplotype_father_inher, 
-        #                             phased_sv_haplotype_father_forgo, 
-        #                             phased_sv_haplotype_mother_inher, 
-        #                             phased_sv_haplotype_mother_forgo, 
-        #                             family_mode,
-        #                             "1")
-        # 使用家系信息优化整个家系所有个体的phase效果
-        #genetic_phasing_optimize(chr,
-        #                         candidate_single_SV_gt_fam_ls, 
-        #                         phased_sv_haplotype_child_father, 
-        #                         phased_sv_haplotype_child_mother, 
-        #                         phased_sv_haplotype_father_inher, 
-        #                         phased_sv_haplotype_father_forgo, 
-        #                         phased_sv_haplotype_mother_inher, 
-        #                         phased_sv_haplotype_mother_forgo, 
-        #                         family_mode)
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, family_mode, "1")
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, family_mode, "2")
-        #evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, "3")
+            phased_sv_haplotype_mother_inher = []
+            phased_sv_haplotype_mother_forgo = []
+            if family_mode == "M1" :
+                read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[2], family_mode, read_pos_interval)
+                phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo = genetic_phasing_member(chr, 
+                                                                                                           candidate_single_SV_gt_fam_ls, 
+                                                                                                           phased_sv_haplotype_mother_inher, 
+                                                                                                           phased_sv_haplotype_mother_forgo, 
+                                                                                                           family_mode, 
+                                                                                                           "3", 
+                                                                                                           read_pos_interval, 
+                                                                                                           read_to_var_list, 
+                                                                                                           read_to_non_list, 
+                                                                                                           1)
+                phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo = genetic_phasing_member(chr, 
+                                                                                                           candidate_single_SV_gt_fam_ls, 
+                                                                                                           phased_sv_haplotype_mother_inher, 
+                                                                                                           phased_sv_haplotype_mother_forgo, 
+                                                                                                           family_mode, 
+                                                                                                           "3", 
+                                                                                                           read_pos_interval, 
+                                                                                                           read_to_var_list, 
+                                                                                                           read_to_non_list, 
+                                                                                                           2)
+        else :
+            phased_sv_haplotype_father_inher = []
+            phased_sv_haplotype_father_forgo = []
+            phased_sv_haplotype_mother_inher = []
+            phased_sv_haplotype_mother_forgo = []
+        
         phasing_candidate_fam_SV(chr,
                                  candidate_single_SV_gt_fam_ls, 
                                  phased_sv_haplotype_child_father, 
@@ -237,21 +212,14 @@ def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read
                                  phased_sv_haplotype_mother_inher, 
                                  phased_sv_haplotype_mother_forgo, 
                                  family_mode,
-                                 True)
-        # 通过phasing信息纠正变异错误
-        #phasing_sv_error_detection_correction(chr, 
-        #                         candidate_single_SV_gt_fam_ls, 
-        #                         phased_sv_haplotype_child_father, 
-        #                         phased_sv_haplotype_child_mother, 
-        #                         phased_sv_haplotype_father_inher, 
-        #                         phased_sv_haplotype_father_forgo, 
-        #                         phased_sv_haplotype_mother_inher, 
-        #                         phased_sv_haplotype_mother_forgo, 
-        #                         family_mode, 
-        #                         minimum_support_reads_list)
-        #logging.info("Finished phasing %s:%f."%(chr, time.time()-start_time))
+                                 True,
+                                 parents_phasing)
         if family_mode == "M1" :
-            resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list)
+            if parents_phasing :
+                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list)
+            else :
+
+                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     else :
         phasing_candidate_fam_SV(chr,
                                  candidate_single_SV_gt_fam_ls, 
@@ -262,7 +230,8 @@ def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read
                                  [], 
                                  [], 
                                  family_mode,
-                                 False)
+                                 False,
+                                 parents_phasing)
         if family_mode == "M1" :
             resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
         logging.info("no phasing %s"%(chr))
@@ -282,7 +251,8 @@ def genetic_no_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, r
                              [], 
                              [], 
                              family_mode,
-                             False)
+                             False,
+                             True)
     if family_mode == "M1" :
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     logging.info("Finished no phasing %s:%f."%(chr, time.time()-start_time))
@@ -1231,7 +1201,7 @@ def verify_haplotype_consistency(chr, candidate_single_SV_gt_fam_ls, phased_sv_h
                 logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][sv_i]),str(candidate_single_SV_gt_fam_ls[1][sv_i]),str(candidate_single_SV_gt_fam_ls[2][sv_i])))
 
 # 将phasing结果转移到变异结果列表中
-def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, phase_flag) :
+def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, phase_flag, parents_phasing) :
     gt_index = 8
     gl_index = 9
     if family_mode == "M1" :
@@ -1241,12 +1211,20 @@ def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_child_father[j][0])) + "|" + str(round(phased_sv_haplotype_child_mother[j][0]))
                 single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_child_father[j][0]) + "," + str(round(phased_sv_haplotype_child_mother[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
-                single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
-                single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_father_inher[j][0])) + "|" + str(round(phased_sv_haplotype_father_forgo[j][0]))
-                single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_father_inher[j][0]) + "," + str(round(phased_sv_haplotype_father_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
-                single_SV_gt = candidate_single_SV_gt_fam_ls[2][j]
-                single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_mother_inher[j][0])) + "|" + str(round(phased_sv_haplotype_mother_forgo[j][0]))
-                single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_mother_inher[j][0]) + "," + str(round(phased_sv_haplotype_mother_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                if parents_phasing :
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_father_inher[j][0])) + "|" + str(round(phased_sv_haplotype_father_forgo[j][0]))
+                    single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_father_inher[j][0]) + "," + str(round(phased_sv_haplotype_father_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[2][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_mother_inher[j][0])) + "|" + str(round(phased_sv_haplotype_mother_forgo[j][0]))
+                    single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_mother_inher[j][0]) + "," + str(round(phased_sv_haplotype_mother_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                else :
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":."
+                    #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + ",.,.," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[2][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":."
+                    #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + ",.,.," + ",".join(single_SV_gt[gl_index].split(",")[5:])
             else :
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":./."
