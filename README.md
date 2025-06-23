@@ -24,7 +24,7 @@
 - [Dependence](#Dependence)
 - [Usage](#Usage)
 - [QuickDemo](#QuickDemo)
-- [LatestUpdates](#Latest Updates)
+- [LatestUpdates](#LatestUpdates)
 - [Contact](#Contact)
 
 
@@ -101,7 +101,7 @@ mkdir work/ ;
 cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2T -r demo/ref.fasta -o demo.vcf -w work/ --family_mode M1 --input_offspring demo/fam.1.bam --input_parent_1 demo/fam.2.bam --input_parent_2 demo/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
 ```
 
-## Latest Updates
+## LatestUpdates
 
 v0.2.0 (June 10, 2025) : 
 
