@@ -218,7 +218,6 @@ def genetic_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read
             if parents_phasing :
                 resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list)
             else :
-
                 resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     else :
         phasing_candidate_fam_SV(chr,
@@ -1242,9 +1241,13 @@ def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_child_father[j][0])) + "|" + str(round(phased_sv_haplotype_child_mother[j][0]))
                 single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_child_father[j][0]) + "," + str(round(phased_sv_haplotype_child_mother[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
-                single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
-                single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_father_inher[j][0])) + "|" + str(round(phased_sv_haplotype_father_forgo[j][0]))
-                single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_father_inher[j][0]) + "," + str(round(phased_sv_haplotype_father_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                if parents_phasing :
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":" + str(round(phased_sv_haplotype_father_inher[j][0])) + "|" + str(round(phased_sv_haplotype_father_forgo[j][0]))
+                    single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + "," + str(phased_sv_haplotype_father_inher[j][0]) + "," + str(round(phased_sv_haplotype_father_forgo[j][0])) + "," + ",".join(single_SV_gt[gl_index].split(",")[5:])
+                else :
+                    single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
+                    single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":."
             else :
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index] + ":./."
