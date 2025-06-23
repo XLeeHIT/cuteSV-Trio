@@ -20,12 +20,11 @@
 ## Contents
 
 - [Introduction](#Introduction)
-
 - [Installation](#Installation)
 - [Dependence](#Dependence)
 - [Usage](#Usage)
 - [QuickDemo](#QuickDemo)
-- [Latest Updates](#Latest Updates)
+- [LatestUpdates](#Latest Updates)
 - [Contact](#Contact)
 
 
@@ -84,7 +83,6 @@ cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sor
 | --family_mode           | Mode  of members in family.                                                                                                                                M1:Family of offspring, father and mother                                                                                                                 M2:Family of offspring and father/mother | M1       |
 | --min_support_list      | Minimum  number of reads of each member of family that support a SV to be reported. It is recommended to divide the data coverage by 6. | Required |
 | --sequencing_platform   | The  option of sequencing platform affects a series of parameters in the signature  clustering. | NULL     |
-| --gold_standard_version | The  gold standard version of variant detection fitting.     | T2T      |
 | --threads               | Number of threads to use.                                    | 16       |
 
 Other parameters can be found by -h/--help.
