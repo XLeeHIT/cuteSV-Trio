@@ -108,7 +108,10 @@ v0.2.0 (June 10, 2025) :
 1. Add *CorrectType* tags to the SV supplemented by the three trio-based trio SV correction moethods and display them in the output VCF file. 
 2. Add *parents_phasing* parameters to control whether the father and mother phase SV. By default, parents do not perform phasing, which can significantly reduce the spatiotemporal cost of phasing.
 
+v0.3.0 (July 15, 2025) : 
 
+1. Added processing to address some mosaic variations.
+2. Addressing the issue of POS abnormalities in special chromosomes of hg38.
 
 ## Contact
 
