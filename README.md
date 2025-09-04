@@ -25,7 +25,7 @@
 - [Dependence](#Dependence)
 - [Usage](#Usage)
 - [QuickDemo](#QuickDemo)
-- [PopulationSVs callset constructing](#PopulationSVs-callset-constructing)
+- [PopulationSVs callset constructing](#Population-SVs-callset-constructing)
 - [Reference panel bulding and benchmarking](#Reference-panel-bulding-and-benchmarking)
 - [LatestUpdates](#LatestUpdates)
 - [Contact](#Contact)
