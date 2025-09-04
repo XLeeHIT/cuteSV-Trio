@@ -267,7 +267,7 @@ def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 2891223 :
+    #    if candidate_single_SV_gt_fam_ls[0][i][0] == "2" and int(candidate_single_SV_gt_fam_ls[0][i][2]) >= 11678235 and int(candidate_single_SV_gt_fam_ls[0][i][2]) <= 11679235 :
     #        logging.info("3%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
     
     #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
@@ -288,10 +288,12 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
                          threshold_gloab, further_threshold_gloab, minimum_support_reads, candidate_single_SV, 
                          gt_round, remain_reads_ratio, merge_del_threshold, family_mode, performing_phasing):
 
-    #is_print_flag = False 
-    #for i in semi_del_cluster :
-    #    if i[0] > 84517000 and i[0] < 84519000 :
-    #        is_print_flag = True
+    is_print_flag = False 
+    for i in semi_del_cluster :
+        if chr == "4" and i[0] > 17394314 and i[0] < 17394414 :
+            is_print_flag = True
+    if is_print_flag :
+        logging.info(semi_del_cluster)
     # Remove duplicates
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
@@ -327,6 +329,8 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
         allele_collect[-1][3].append(i[2])
         last_len = i[1]
     allele_collect[-1][2].append(len(allele_collect[-1][0]))
+    if is_print_flag :
+        logging.info(allele_collect)
     # 在第二次聚类中添加基于第一个值的距离的长度切割，为避免将应merge到一起的信号错误分割，需要添加位置间隔较远的限制条件
     #pos_ls = sorted(allele_collect[0])
     #if np.mean(pos_ls[0:])
@@ -335,7 +339,11 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
         is_segment_flag = False
         further_allele_collect = list()
         for allele in allele_collect :
-            DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP = further_threshold_gloab * np.mean(allele[1])
+            DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP = max(10,further_threshold_gloab * np.mean(allele[1]))
+            #if is_print_flag :
+            #    logging.info(allele)
+            #    logging.info(further_threshold_gloab)
+            #    logging.info(DISCRETE_THRESHOLD_LEN_CLUSTER_DEL_TEMP)
             further_allele_collect.append([[allele[0][0]],[allele[1][0]],[],[allele[3][0]]])
             first_len = allele[1][0]
             for i in range(1,len(allele[1])) :
@@ -349,6 +357,8 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
                 further_allele_collect[-1][3].append(allele[3][i])
             further_allele_collect[-1][2].append(len(further_allele_collect[-1][0]))
         allele_collect = further_allele_collect
+    if is_print_flag :
+        logging.info(allele_collect)
     allele_sort = sorted(allele_collect, key = lambda x:x[2])
     #if is_print_flag :
     #    logging.info(allele_sort)
@@ -858,8 +868,8 @@ def generate_ins_cluster(semi_ins_cluster, chr, read_count,
         allele_collect = further_allele_collect
         break
     allele_sort = sorted(allele_collect, key = lambda x:x[2])
-    if is_print_flag :
-        logging.info(allele_sort)
+    #if is_print_flag :
+    #    logging.info(allele_sort)
     dis_coefficient_var_threshold = 0.001
     len_coefficient_var_threshold = 0.3
     for allele in allele_sort:

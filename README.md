@@ -1,5 +1,9 @@
 # cuteSV-Trio:Accurate and high-effectiveness long-read calling and phasing structural variant detector in family trios
 
+<div align="left">
+    <img src="images/logo.jpg" alt="ChinaMeth" width="300"/>
+</div>
+
 ```
                                                __________    __       __             ____________
                                               |   ____   |  |  |     |  |           |____________|
@@ -20,6 +24,7 @@
 ## Contents
 
 - [Introduction](#Introduction)
+- [Workflow](#Workflow)
 - [Installation](#Installation)
 - [Dependence](#Dependence)
 - [Usage](#Usage)
@@ -32,6 +37,15 @@
 ## Introduction
 
 cuteSV-Trio, a haplotype-phased SV caller designed for trio-based low-coverage long-read sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel multi-feature clustering strategies to achieve high-precision haplotype-aware SV detection and accurate de novo SV identification. The family clustering approach is applied to characterize genomic features between family signatures, combining an error-specific optimisation to correct common errors in SV detection. Our comprehensive evaluations demonstrate that cuteSV-Trio achieves superior cost-performance efficiency compared with tools for both SV variant calling and phasing across varying sequencing depths in trio samples. cuteSV-Trio outperforms existing SV calling methods while requiring fewer sequencing data for comparable accuracy. cuteSV-Trio additionally achieves obvious improvement in haplotype-phasing rates, detects truer de novo SVs compared to other approaches. Through systematic evaluation of trio modeling advantages, we also established quantitative evidence for enhanced resolution in de novo variation detection and improved specificity in TE classification. These advancements established a new paradigm for family genome analysis, fundamentally enabling cost-effective trio-based SV detection while providing the first computational evidence for inheritance-driven quality enhancement in datasets.
+
+
+
+## Workflow
+cuteSV-Trio utilizes low-coverage long-read alignments from three family members (i.e., two parents and their offspring) to detect haplotype-resolved SVs within the trio. The method consists of four major steps designed to achieve high-performance SV detection
+
+<div align="left">
+    <img src="images/overflow.png" alt="ChinaMeth" width="300"/>
+</div>
 
 
 

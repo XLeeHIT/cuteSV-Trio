@@ -1264,7 +1264,7 @@ def main_ctrl(args, argv):
                 result.append(analysis_pools.map_async(run_ins, para))
                 #logging.info(para)
             
-            '''
+            
             # +++++INV+++++
             for chr in chr_ls["INV"]:
                 para = [(temporary_dir, 
@@ -1313,7 +1313,7 @@ def main_ctrl(args, argv):
                             args.family_mode,
                             args.performing_phasing)]
                     result.append(analysis_pools.map_async(run_tra, para))
-            '''
+            
         finally :
             analysis_pools.close()
             analysis_pools.join()
