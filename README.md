@@ -1,21 +1,15 @@
 # cuteSV-Trio:Accurate and high-effectiveness long-read calling and phasing structural variant detector in family trios
 
-<div style="display: flex; justify-content: center; width: 100%;">
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Language](https://img.shields.io/badge/language-shell-4EAA25)
+![Language](https://img.shields.io/badge/language-python-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS-brightgreen)
+
+
+<div style="text-align: center;">
     <img src="images/logo.jpg" alt="cuteSV-Trio" width="200"/>
 </div>
-
-```
-                                               __________    __       __             ____________
-                                              |   ____   |  |  |     |  |           |____________|
-                          _                   |  |    |__|  |  |     |  |                |  |
- _______    _     _   ___| |___     ______    |  |          |  |     |  |                |  |
-|  ___  |  | |   | | |___   ___|   / ____ \   |  |_______   |  |     |  |   _______      |  |     _   ___   __     ______
-| |   |_|  | |   | |     | |      / /____\ \  |_______   |  |  |     |  |  |_______|     |  |    | | / __| |__|   / /  \ \
-| |        | |   | |     | |      | _______|   __     |  |  \  \     /  /                |  |    | |/ /     __   / /    \ \
-| |    _   | |   | |     | |  _   | |     _   |  |    |  |   \  \   /  /                 |  |    | |/      |  | | |      | |
-| |___| |  | |___| |     | |_| |  \ \____/ |  |  |____|  |    \  \_/  /                  |  |    | |       |  |  \ \    / /
-|_______|  |_______|     |_____|   \______/   |__________|     \_____/                   |__|    |_|       |__|   \_\__/_/
-```
 
 ------
 
