@@ -7,10 +7,11 @@
 ![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS-brightgreen)
 
 
-<div style="text-align: center;">
-    <img src="images/logo.jpg" alt="cuteSV-Trio" width="200"/>
+<div align="center">
+  <a target="_blank">
+    <img src="images/logo.jpg" width = "150" alt="cuteSV-Trio">
+  </a>
 </div>
-
 
 ------
 
@@ -42,8 +43,10 @@ cuteSV-Trio, a haplotype-phased SV caller designed for trio-based low-coverage l
 ## Workflow
 cuteSV-Trio utilizes low-coverage long-read alignments from three family members (i.e., two parents and their offspring) to detect haplotype-resolved SVs within the trio. The method consists of four major steps designed to achieve high-performance SV detection
 
-<div style="text-align: center;">
-    <img src="images/overflow.png" alt="Overflow" width="600"/>
+<div align="center">
+  <a target="_blank">
+    <img src="images/overflow.png" width = "600" alt="Overflow">
+  </a>
 </div>
 
 
