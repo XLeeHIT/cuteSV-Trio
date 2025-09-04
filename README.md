@@ -114,7 +114,7 @@ cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sor
 | --sequencing_platform | ❌        | The  option of sequencing platform affects a series of parameters in the signature  clustering. | NULL           |
 | --threads             | ❌        | Number  of threads to use.                                   | 16             |
 
-Other parameters can be found by -h/--help.
+Other parameters can be found by **-h/--help**.
 
 
 ------
