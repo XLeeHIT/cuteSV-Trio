@@ -11,11 +11,12 @@
     <img src="images/logo.jpg" alt="cuteSV-Trio" width="200"/>
 </div>
 
+
 ------
 
 
-
 ## Contents
+
 
 - [Introduction](#Introduction)
 - [Workflow](#Workflow)
@@ -27,11 +28,15 @@
 - [Contact](#Contact)
 
 
+------
+
 
 ## Introduction
 
 cuteSV-Trio, a haplotype-phased SV caller designed for trio-based low-coverage long-read sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel multi-feature clustering strategies to achieve high-precision haplotype-aware SV detection and accurate de novo SV identification. The family clustering approach is applied to characterize genomic features between family signatures, combining an error-specific optimisation to correct common errors in SV detection. Our comprehensive evaluations demonstrate that cuteSV-Trio achieves superior cost-performance efficiency compared with tools for both SV variant calling and phasing across varying sequencing depths in trio samples. cuteSV-Trio outperforms existing SV calling methods while requiring fewer sequencing data for comparable accuracy. cuteSV-Trio additionally achieves obvious improvement in haplotype-phasing rates, detects truer de novo SVs compared to other approaches. Through systematic evaluation of trio modeling advantages, we also established quantitative evidence for enhanced resolution in de novo variation detection and improved specificity in TE classification. These advancements established a new paradigm for family genome analysis, fundamentally enabling cost-effective trio-based SV detection while providing the first computational evidence for inheritance-driven quality enhancement in datasets.
 
+
+------
 
 
 ## Workflow
@@ -42,6 +47,8 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 </div>
 
 
+------
+
 
 ## Installation
 
@@ -49,8 +56,8 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 git clone https://github.com/QianZixi/cuteSV-Trio && cd cuteSVTrio/ && python setup.py install 
 ```
 
-------
 
+------
 
 
 ## Dependence
@@ -66,6 +73,7 @@ git clone https://github.com/QianZixi/cuteSV-Trio && cd cuteSVTrio/ && python se
 7. scikit-learn
 ```
 
+------
 
 
 ## Usage
@@ -74,8 +82,8 @@ git clone https://github.com/QianZixi/cuteSV-Trio && cd cuteSVTrio/ && python se
 cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sorted.bam> <output.vcf> <work_dir>
 ```
 
-------
 
+------
 
 
 | Key  Parameter          | Description                                                  | Default  |
@@ -96,6 +104,8 @@ cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sor
 Other parameters can be found by -h/--help.
 
 
+------
+
 
 ## QuickDemo
 
@@ -109,6 +119,10 @@ mkdir work/ ;
 cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2T -r demo/ref.fasta -o demo.vcf -w work/ --family_mode M1 --input_offspring demo/fam.1.bam --input_parent_1 demo/fam.2.bam --input_parent_2 demo/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
 ```
 
+
+------
+
+
 ## LatestUpdates
 
 v0.2.0 (June 10, 2025) : 
@@ -120,6 +134,10 @@ v0.3.0 (July 15, 2025) :
 
 1. Added processing to address some mosaic variations.
 2. Addressing the issue of POS abnormalities in special chromosomes of hg38.
+
+
+------
+
 
 ## Contact
 
