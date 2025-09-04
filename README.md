@@ -25,6 +25,8 @@
 - [Dependence](#Dependence)
 - [Usage](#Usage)
 - [QuickDemo](#QuickDemo)
+- [PopulationSVs callset constructing](#PopulationSVs-callset-constructing)
+- [Reference panel bulding and benchmarking](#Reference-panel-bulding-and-benchmarking)
 - [LatestUpdates](#LatestUpdates)
 - [Contact](#Contact)
 
@@ -134,7 +136,7 @@ cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2
 ------
 
 
-## Population SVs callset constructing 
+## Population SVs callset constructing
 
 <div align="center">
   <a target="_blank">
