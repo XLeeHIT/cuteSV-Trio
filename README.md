@@ -160,7 +160,7 @@ cuteSVTrio --performing_phasing -r ref.fasta -o duo.1.vcf -w work.duo.1/ --famil
 cuteSVTrio --performing_phasing -r ref.fasta -o duo.2.vcf -w work.duo.2/ --family_mode M2 --input_offspring duo.2/fam.1.bam --input_parent_1 duo.2/fam.2.bam --input_parent_2 duo.2/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5 ; 
 
 # Merge SVs using bcftools & Truvari
-bcftools merge --force-samples -m none -o callset.vcf -l merge_vcf_list.txt # Each line in *merge_vcf_list.txt* is the path of the vcf file that needs to be merged
+bcftools merge --force-samples -m none -o callset.vcf -l merge_vcf_list.txt # Each line in "merge_vcf_list.txt" is the path of the vcf file that needs to be merged
 bgzip -f callset.vcf ; tabix -f callset.vcf.gz
 truvari collapse -i callset.vcf -o callset.merged.vcf.gz -c callset.merged.collapse.vcf.gz -r 1000 -p 0 -P 0.7 -s 30 -S 100000
 
