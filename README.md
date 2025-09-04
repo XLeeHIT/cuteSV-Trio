@@ -49,6 +49,14 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
   </a>
 </div>
 
+**Step 1**: Extract SV signatures and their corresponding long-read alignment coordinates separately for each family member. Then, integrate these individual results into a unified, family-specific SV signature set.
+
+**Step 2**: Apply the stepwise refinement clustering strategy proposed by cuteSV to group SV signatures based on their genomic coordinates and variant sizes. Next, separate alternative-allele-supporting reads and reference-allele-supporting reads according to the individual labels within each cluster. Then, use a Maximum Likelihood Estimation (MLE) model to compute preliminary genotypes for each SV in each individual.
+
+**Step 3**: Assess the genotype of each SV locus at the family level using Mendelian inheritance patterns and identify inconsistencies for correction. By correction in three main scenarios, cuteSV-Trio utilizes the corresponding family-level cluster to calculate trio-based joint genotypes, which are then used to assist in correcting the offspring’s genotype.
+
+**Step 4**: Leverage Mendelian inheritance patterns and long-read linkage information to construct haplotype-resolved SV callsets. CuteSV integrates the inheritance information and sequence linkage information of SV, correctly and conveniently assign each SV to the haplotype that maximizes Mendelian consistency.
+
 
 ------
 
@@ -89,20 +97,20 @@ cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sor
 ------
 
 
-| Key  Parameter          | Description                                                  | Default  |
-| ----------------------- | ------------------------------------------------------------ | -------- |
-| --reference             | The  reference genome in fasta format                        | Required |
-| --input_offspring       | Sorted  .bam file of offspring in family from NGMLR or Minimap2. | Required |
-| --input_parent_1        | Sorted  .bam file of father or only parent in family from NGMLR or Minimap2. | Required |
-| --input_parent_2        | Sorted  .bam file of mother in family from NGMLR or Minimap2. | Required |
-| --output                | Output  VCF format file.                                     | Required |
-| --work_dir              | Work-directory  for distributed jobs                         | Required |
-| --execute_stage         | The  stage of this operation execution.                                                                                                                       1:Run all member signature extraction                                                                                                                         2:Run family signature clustering and variant generation                                                                                     0:Execute both two stage 1 and 2 | 0        |
-| --performing_phasing    | The  option of performing structural variant phasing.        | FALSE    |
-| --family_mode           | Mode  of members in family.                                                                                                                                M1:Family of offspring, father and mother                                                                                                                 M2:Family of offspring and father/mother | M1       |
-| --min_support_list      | Minimum  number of reads of each member of family that support a SV to be reported. It is recommended to divide the data coverage by 6. | Required |
-| --sequencing_platform   | The  option of sequencing platform affects a series of parameters in the signature  clustering. | NULL     |
-| --threads               | Number of threads to use.                                    | 16       |
+| Key  Parameter        | Required | Description                                                  | Default        |
+| --------------------- | -------- | ------------------------------------------------------------ | -------------- |
+| --reference           | ✅        | The reference  genome in fasta format                        | *(no default)* |
+| --input_offspring     | ✅        | Sorted  .bam file of offspring in family from NGMLR or Minimap2. | *(no default)* |
+| --input_parent_1      | ✅        | Sorted  .bam file of father or only parent in family from NGMLR or Minimap2. | *(no default)* |
+| --input_parent_2      | ✅        | Sorted  .bam file of mother in family from NGMLR or Minimap2. | *(no default)* |
+| --output              | ✅        | Output  VCF format file.                                     | *(no default)* |
+| --work_dir            | ✅        | Work-directory  for distributed jobs                         | *(no default)* |
+| --min_support_list    | ✅        | Minimum  number of reads of each member of family that support a SV to be reported. It  is recommended to divide the data coverage by 6. | *(no default)* |
+| --execute_stage       | ❌        | The  stage of this operation execution. 1:Run all member signature extraction  2:Run family signature clustering and variant generation 0:Execute both two  stage 1 and 2 | 0              |
+| --performing_phasing  | ❌        | The  option of performing structural variant phasing.        | FALSE          |
+| --family_mode         | ❌        | Mode  of members in family. M1:Family of offspring, father and mother M2:Family of  offspring and father/mother | M1             |
+| --sequencing_platform | ❌        | The  option of sequencing platform affects a series of parameters in the signature  clustering. | NULL           |
+| --threads             | ❌        | Number  of threads to use.                                   | 16             |
 
 Other parameters can be found by -h/--help.
 
