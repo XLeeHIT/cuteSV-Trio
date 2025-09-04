@@ -187,16 +187,22 @@ bgzip -f cuteSVTrio.chr1.overlap.sv.vcf ; tabix -f cuteSVTrio.chr1.overlap.sv.vc
 bgzip -f HGSVC.chr1.overlap.sv.vcf ; tabix -f HGSVC.chr1.overlap.sv.vcf.gz
 bgzip -f 1kGP.chr1.overlap.SNP_INDEL.vcf ; tabix -f 1kGP.chr1.overlap.SNP_INDEL.vcf.gz
 bgzip -f 1kGP_chr1_SNP_INDEL.260.target.vcf ; tabix -f 1kGP_chr1_SNP_INDEL.260.target.vcf.gz
+
 # Divide all SVs into two parts: target and answer (ground truth)
 python scripts/split_vcf_file.py chr1
 bgzip -f 1kGP_chr1_SV.260.target.vcf ; tabix -f 1kGP_chr1_SV.260.target.vcf.gz ; bcftools index 1kGP_chr1_SV.260.target.vcf.gz
 bgzip -f 1kGP_chr1_SV.260.answer.vcf ; tabix -f 1kGP_chr1_SV.260.answer.vcf.gz ; bcftools index 1kGP_chr1_SV.260.answer.vcf.gz
+
 # Bulid the cuteSV-Trio reference panel
 bcftools concat 1kGP.chr1.overlap.SNP_INDEL.vcf.gz cuteSVTrio.chr1.overlap.sv.vcf.gz -o cuteSVTrio.1kGP.chr1.unsorted.vcf ; bgzip -f cuteSVTrio.1kGP.chr1.unsorted.vcf ; tabix -f cuteSVTrio.1kGP.chr1.unsorted.vcf.gz ; bcftools sort cuteSVTrio.1kGP.chr1.unsorted.vcf.gz -o cuteSVTrio.1kGP.chr1.panel.vcf ; bgzip -f cuteSVTrio.1kGP.chr1.panel.vcf ; tabix -f cuteSVTrio.1kGP.chr1.panel.vcf.gz 
+
 # Bulid the HGSVC reference panel
 bcftools concat 1kGP.chr1.overlap.SNP_INDEL.vcf.gz HGSVC.chr1.overlap.sv.vcf.gz -o HGSVC.1kGP.chr1.unsorted.vcf ; bgzip -f HGSVC.1kGP.chr1.unsorted.vcf ; tabix -f HGSVC.1kGP.chr1.unsorted.vcf.gz ; bcftools sort HGSVC.1kGP.chr1.unsorted.vcf.gz -o HGSVC.1kGP.chr1.panel.vcf ; bgzip -f HGSVC.1kGP.chr1.panel.vcf ; tabix -f HGSVC.1kGP.chr1.panel.vcf.gz ; 
+
 # Bulid the target call set
 bcftools concat 1kGP_chr1_SNP_INDEL.260.target.vcf.gz 1kGP_chr1_SV.260.target.vcf.gz -o 1kGP_chr1_all.260.unsorted.vcf ; bgzip -f 1kGP_chr1_all.260.unsorted.vcf ; bcftools sort 1kGP_chr1_all.260.unsorted.vcf.gz -o 1kGP_chr1_all.260.target.vcf ; bgzip -f 1kGP_chr1_all.260.target.vcf ; tabix -f 1kGP_chr1_all.260.target.vcf.gz
+
+# Use minimac4 for SV imputation
 minimac4 --compress-reference cuteSVTrio.1kGP.chr1.panel.vcf.gz > cuteSVTrio.1kGP.chr1.panel.msav -t 32
 minimac4 --compress-reference HGSVC.1kGP.chr1.panel.vcf.gz > HGSVC.1kGP.chr1.panel.msav -t 32
 minimac4 -f GT,HDS,GP -t 8 -c 5000000 cuteSVTrio.1kGP.chr1.panel.msav 1kGP_chr1_all.260.target.vcf.gz -o cuteSVTrio.1kGP.chr1.minimac4.vcf.gz
