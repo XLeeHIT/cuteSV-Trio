@@ -150,6 +150,22 @@ cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2
 
 Due to the full exploitation of family specific SV associations and the built-in SV phasing, cuteSV-Trio eliminates the force calling and statistical phasing steps in traditional pipelines, significantly shortening the construction process. It is worth mentioning that in the current construction pipeline, besides SV, SNVs also need to be characterized using four steps pipeline, but the new pipeline using cuteSV-Trio does not require SNV information.
 
+```
+# Construting population SV call set using cuteSV-Trio
+# Detect SVs for each trio and duo using cuteSV-Trio
+
+cuteSVTrio --performing_phasing -r ref.fasta -o trio.1.vcf -w work.trio.1/ --family_mode M1 --input_offspring trio.1/fam.1.bam --input_parent_1 trio.1/fam.2.bam --input_parent_2 trio.1/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
+cuteSVTrio --performing_phasing -r ref.fasta -o trio.2.vcf -w work.trio.2/ --family_mode M1 --input_offspring trio.2/fam.1.bam --input_parent_1 trio.2/fam.2.bam --input_parent_2 trio.2/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
+cuteSVTrio --performing_phasing -r ref.fasta -o duo.1.vcf -w work.duo.1/ --family_mode M2 --input_offspring duo.1/fam.1.bam --input_parent_1 duo.1/fam.2.bam --input_parent_2 duo.1/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5 ; 
+cuteSVTrio --performing_phasing -r ref.fasta -o duo.2.vcf -w work.duo.2/ --family_mode M2 --input_offspring duo.2/fam.1.bam --input_parent_1 duo.2/fam.2.bam --input_parent_2 duo.2/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5 ; 
+
+# Merge SVs using bcftools & Truvari
+bcftools merge --force-samples -m none -o callset.vcf -l merge_vcf_list.txt # Each line in *merge_vcf_list.txt* is the path of the vcf file that needs to be merged
+bgzip -f callset.vcf ; tabix -f callset.vcf.gz
+truvari collapse -i callset.vcf -o callset.merged.vcf.gz -c callset.merged.collapse.vcf.gz -r 1000 -p 0 -P 0.7 -s 30 -S 100000
+
+```
+
 
 ------
 
