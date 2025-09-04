@@ -1,7 +1,7 @@
 # cuteSV-Trio:Accurate and high-effectiveness long-read calling and phasing structural variant detector in family trios
 
-<div align="left">
-    <img src="images/logo.jpg" alt="ChinaMeth" width="300"/>
+<div style="text-align: center;">
+    <img src="images/logo.jpg" alt="cuteSV-Trio" width="200"/>
 </div>
 
 ```
@@ -43,8 +43,8 @@ cuteSV-Trio, a haplotype-phased SV caller designed for trio-based low-coverage l
 ## Workflow
 cuteSV-Trio utilizes low-coverage long-read alignments from three family members (i.e., two parents and their offspring) to detect haplotype-resolved SVs within the trio. The method consists of four major steps designed to achieve high-performance SV detection
 
-<div align="left">
-    <img src="images/overflow.png" alt="ChinaMeth" width="300"/>
+<div style="text-align: center;">
+    <img src="images/overflow.png" alt="Overflow" width="500"/>
 </div>
 
 
