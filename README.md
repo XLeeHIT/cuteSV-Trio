@@ -1,6 +1,6 @@
 # cuteSV-Trio:Accurate and high-effectiveness long-read calling and phasing structural variant detector in family trios
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Language](https://img.shields.io/badge/language-shell-4EAA25)
 ![Language](https://img.shields.io/badge/language-python-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)

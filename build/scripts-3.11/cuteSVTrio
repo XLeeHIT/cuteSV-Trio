@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/user/lixin/miniconda3/bin/python
 
 ''' 
  * All rights Reserved, Designed By HIT-Bioinformatics   
@@ -196,6 +196,9 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
     #0			#1			#2			#3		#4	#5
     '''
     SP_list = sorted(split_read, key = lambda x:x[0])
+    # print(read_name)
+    # for i in SP_list:
+    #     print(i)
 
     # detect INS involoved in a translocation
     trigger_INS_TRA = 0	
@@ -506,6 +509,7 @@ def organize_split_signal(primary_info, Supplementary_info, total_L, SV_size,
         analysis_split_read(split_read, SV_size, total_L, read_name, candidate, MaxSize, query)
 
 def generate_combine_sigs(sigs, Chr_name, read_name, svtype, candidate, merge_dis):
+    #logging.info(len(sigs))
     if len(sigs) == 0:
         pass
     elif len(sigs) == 1:
@@ -597,12 +601,15 @@ REFCHANGEOP=[CHANGETABLE[i][1] if i in CHANGETABLE.keys() else False for i in ra
 INDELOP=[(i==pysam.CDEL or i==pysam.CINS) for i in range(max(OPLIST)+1)]
 
 def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, family_mode ,family_member):
+    #logging.info("%s,%s"%(str(read.query_length),str(min_read_len)))
     if read.query_length < min_read_len:
+        #logging.info("%s,%s"%(str(read.query_length),str(min_read_len)))
         return []
     Combine_sig_in_same_read_ins = list()
     Combine_sig_in_same_read_del = list()
     #new start
     process_signal = detect_flag(read.flag)
+    #logging.info("%s,%s"%(str(read.mapq),str(min_mapq)))
     if read.mapq >= min_mapq:
         pos_start = read.reference_start # 0-based
         pos_end = read.reference_end
@@ -648,8 +655,10 @@ def parse_read(read, candidate, Chr_name, SV_size, min_mapq, max_split_parts, mi
     # ************Combine signals in same read********************
     generate_combine_sigs(Combine_sig_in_same_read_ins, Chr_name, "%s/%s/%s"%(family_mode,family_member,read.query_name), "INS", candidate["INS"], merge_ins_threshold)
     generate_combine_sigs(Combine_sig_in_same_read_del, Chr_name, "%s/%s/%s"%(family_mode,family_member,read.query_name), "DEL", candidate["DEL"], merge_del_threshold)
+    #logging.info(process_signal)
     if process_signal == 1 or process_signal == 2: # 0 / 16
         Tags = read.get_tags()
+        #logging.info(Tags)
         if read.mapq >= min_mapq:
             if process_signal == 1:
                 primary_info = [softclip_left, read.query_length-softclip_right, pos_start, 
@@ -690,7 +699,9 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
     reads_info_list= list()
     Chr_name = task[0]
     global samfile
+    #logging.info(samfile)
     for read in samfile.fetch(Chr_name, task[1], task[2]):
+        #logging.info(read)
         # handle_read(read, task[1], bed_regions, candidate, reads_info_list, Chr_name, min_length, min_mapq, max_split_parts, min_read_len, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize)
         if read.flag == 256 or read.flag == 272:
             continue
@@ -707,6 +718,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
         else:
             in_bed = True
         if read.reference_start >= task[1] and in_bed:
+            #logging.info(candidate)
             parse_read(read, candidate, Chr_name, min_length, min_mapq, max_split_parts, 
                                 min_read_len, min_siglength, merge_del_threshold, 
                                 merge_ins_threshold, MaxSize, family_mode, family_member)
@@ -716,6 +728,7 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
                     is_primary = 1
                 reads_info_list.append((pos_start, pos_end, is_primary, "%s/%s/%s"%(family_mode,family_member,read.query_name), Chr_name))
     pid=current_process().pid
+    #logging.info(candidate)
     for sv_type in SVTYPES:
         with open("%s%s.%s.signatures/%s%s.pickle"%(temp_dir,family_mode,family_member,pid,sv_type),"ab") as f:
             pickle.dump(candidate[sv_type],f)
@@ -723,9 +736,11 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
         pickle.dump(reads_info_list,f)
     logging.info("Finished %s:%d-%d."%(Chr_name, task[1], task[2]))	
     gc.collect()
+    # return (candidate, reads_info_list)
     return None
 
 def multi_run_wrapper(args):
+    #logging.info(args)
     return single_pipe(*args)
 
 #old_file_sig[]=mem_sig[DEL: -2,-1,0,1,2, INS: -2,-1,0,1,2,3, DUP: -2,-1,0,1,2, INV: -2,-1,0,1,2,3, TRA: -2,-1,0,1,2,3,4, reads: -1,0,1,2,3]
@@ -973,6 +988,7 @@ def add_candidates(result):
 # candidates={}
 def main_ctrl(args, argv):
     logging.info(args)
+    #family_mode = "M1"
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
     if args.family_mode not in family_mode_index_ls:
@@ -1035,6 +1051,10 @@ def main_ctrl(args, argv):
             run_max_cluster_bias_DEL = 100
             run_diff_ratio_merging_DEL = 0.05
         elif run_sequencing_platform == "HiFI".lower() and run_gold_standard_version == "NIST".lower() :
+            #run_max_cluster_bias_INS = 400
+            #run_diff_ratio_merging_INS = 0.045
+            #run_max_cluster_bias_DEL = 3000
+            #run_diff_ratio_merging_DEL = 0.06
             run_max_cluster_bias_INS = 150
             run_diff_ratio_merging_INS = 0.05
             run_max_cluster_bias_DEL = 150
@@ -1077,7 +1097,9 @@ def main_ctrl(args, argv):
         for family_member_i in range(len(family_member_ls)) :
             input_file = input_file_ls[family_member_i]
             family_member = family_member_ls[family_member_i]
+            #logging.info(input_file)
             samfile = pysam.AlignmentFile(input_file)
+            #logging.info(samfile)
             contig_num = len(samfile.get_index_statistics())
             logging.info("The total number of chromsomes: %d"%(contig_num))
 
@@ -1087,6 +1109,7 @@ def main_ctrl(args, argv):
 
             ref_ = samfile.get_index_statistics()
             
+            #logging.info(ref_)
             total_mapped=0
             for i in ref_:
                 total_mapped+=i[1]
@@ -1129,6 +1152,7 @@ def main_ctrl(args, argv):
             analysis_pools = Pool(processes=int(args.threads), initializer=init_reading_process, initargs=(input_file,))
             os.mkdir("%s%s.%s.signatures"%(temporary_dir,args.family_mode,family_member))
             results=[]#use this is faster than make a long paras list
+            #logging.info(Task_list)
             for i in range(len(Task_list)):
                 paras = [(input_file, 
                             args.min_size, 
@@ -1144,6 +1168,7 @@ def main_ctrl(args, argv):
                             None if bed_regions == None else bed_regions[i],
                             args.family_mode,
                             family_member)]
+                #logging.info(paras)
                 analysis_pools.map_async(multi_run_wrapper, paras)
             pids = [process.pid for process in analysis_pools._pool]
             analysis_pools.close()
@@ -1212,6 +1237,23 @@ def main_ctrl(args, argv):
             
             # +++++DEL+++++
             for chr in chr_ls["DEL"]:
+            #for chr in ["chr19","19"]:
+                #if chr not in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"] :
+                #    continue                
+                #run_del([temporary_dir, 
+                #        chr, 
+                #        min(minimum_support_reads_list),
+                #        run_diff_ratio_merging_DEL, 
+                #        run_max_cluster_bias_DEL, 
+                #        # args.diff_ratio_filtering_DEL, 
+                #        minimum_support_reads_list, 
+                #        args.gt_round,
+                #        args.remain_reads_ratio,
+                #        args.merge_del_threshold,
+                #        args.read_pos_interval,
+                #        args.family_mode,
+                #        args.performing_phasing])
+                
                 para = [(temporary_dir, 
                         chr, 
                         min(minimum_support_reads_list),
@@ -1229,6 +1271,23 @@ def main_ctrl(args, argv):
 
             # +++++INS+++++
             for chr in chr_ls["INS"]:
+            #for chr in ["chr19","19"]:
+                #if chr not in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"] :
+                #    continue
+                #run_ins([temporary_dir, 
+                #        chr, 
+                #        min(minimum_support_reads_list), 
+                #        run_diff_ratio_merging_INS, 
+                #        run_max_cluster_bias_INS, 
+                #        minimum_support_reads_list, 
+                #        args.gt_round,
+                #        args.remain_reads_ratio,
+                #        args.merge_ins_threshold,
+                #        args.read_pos_interval,
+                #        args.family_mode,
+                #        args.performing_phasing,
+                #        args.all_ins_singnature_reads])
+                
                 para = [(temporary_dir, 
                         chr, 
                         min(minimum_support_reads_list), 
@@ -1244,7 +1303,7 @@ def main_ctrl(args, argv):
                         args.all_ins_singnature_reads)]
                 result.append(analysis_pools.map_async(run_ins, para))
                 #logging.info(para)
-            
+            '''
             if not args.performing_assembly :
                 # +++++INV+++++
                 for chr in chr_ls["INV"]:
@@ -1276,10 +1335,11 @@ def main_ctrl(args, argv):
                             args.family_mode,
                             args.performing_phasing)]
                     result.append(analysis_pools.map_async(run_dup, para))
-            
+            '''
             
             if args.run_TRA :
                 # +++++TRA+++++
+                # 关于TRA的部分，保持原本cuteSVTrio的版本，没有改动
                 for chr in chr_ls["TRA"]:
                     para = [(temporary_dir, 
                             chr, 
@@ -1298,6 +1358,8 @@ def main_ctrl(args, argv):
             analysis_pools.close()
             analysis_pools.join()
         
+        #logging.info(result)
+        # 汇总得到的sv的数量，每个个体完全相同，或者某些个体为0，其余非0的相同
         phasing_svtype_ls = ["INS","DEL","DUP","INV"]
         no_phasing_svtype_ls = ["TRA"]
         phasing_fam_results=[]
@@ -1309,6 +1371,7 @@ def main_ctrl(args, argv):
                 try:
                     chr, svs = res.get()[0]
                     if svs[0][0][1] in phasing_svtype_ls :
+                        #logging.info(res.get()[0])
                         if chr not in phasing_results.keys() :
                             phasing_results[chr]=[]
                         phasing_results[chr].extend(svs[family_member_i])
@@ -1324,17 +1387,35 @@ def main_ctrl(args, argv):
         for family_member_i in range(len(phasing_fam_results)) :
             phasing_results = phasing_fam_results[family_member_i]
             for chr in phasing_results.keys() :
+                #if chr == "HLA-DRB1*08:03:02" :
+                #    logging.info(results[chr])
                 phasing_results[chr] = sorted(phasing_results[chr], key=lambda x: int(x[2]))
-                phasing_results[chr] = allele_correction(chr,family_member_i,phasing_results[chr],minimum_support_reads_list[family_member_i])
+                #for i in range(10) :
+                #    logging.info(phasing_results[chr][i])
+                phasing_results[chr] = allele_correction(chr,phasing_results[chr],minimum_support_reads_list[family_member_i])
+                #for i in range(10) :
+                #    logging.info(phasing_results[chr][i])
+                #if chr == "chr2" :
+                #    logging.info(phasing_results[chr][0])
+                #    logging.info(phasing_results[chr][1])
+                #    logging.info(phasing_results[chr][2])
+                #    logging.info(phasing_results[chr][3])
+                #    logging.info(phasing_results[chr][4])
+                #logging.info(results[chr])
         for no_phasing_results in no_phasing_fam_results :
             for chr in no_phasing_results.keys() :
+                #if chr == "HLA-DRB1*08:03:02" :
+                #    logging.info(results[chr])
+                #logging.info(no_phasing_results[chr])
                 no_phasing_results[chr] = sorted(no_phasing_results[chr], key=lambda x: x[2])
+                #logging.info(results[chr])
         
         if args.performing_phasing :
             logging.info("Phasing structural variants.")
+            # 处理需phasing的变异类型
             result = list()
             
-            # phasing
+            # 单线程-phasing
             for chr in phasing_fam_results[0].keys():
                 sv_fam_ls = []
                 for family_member_i in range(len(family_member_ls)) :
@@ -1351,8 +1432,7 @@ def main_ctrl(args, argv):
                                                      args.remap_merge_k,
                                                      args.remap_minimizer_window,
                                                      args.assembly_correction_threshold,
-                                                     args.performing_assembly,
-                                                     args.multiple_phasing))
+                                                     args.performing_assembly))
             
             phasing_fam_results=[]
             for family_member_i in range(len(family_member_ls)) :
@@ -1367,6 +1447,7 @@ def main_ctrl(args, argv):
                 for res in result:
                     try:
                         chr, svs, ch_hap_1, ch_hap_2, fa_hap_1, fa_hap_2, mo_hap_1, mo_hap_2 = res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7]
+                        #logging.info(res.get()[0])
                         if chr not in phasing_results.keys() :
                             phasing_results[chr]=[]
                             if family_member_i == 0 :
@@ -1385,6 +1466,7 @@ def main_ctrl(args, argv):
                             mother_hap1_results[chr].extend(mo_hap_1)
                             mother_hap2_results[chr].extend(mo_hap_2)
                     except:
+                        #logging.info(res[0])
                         pass
                 phasing_fam_results.append(phasing_results)
             
@@ -1407,7 +1489,7 @@ def main_ctrl(args, argv):
                         os.makedirs(args.work_dir+"/assembly.fq.results/father", exist_ok=True)
                         os.makedirs(args.work_dir+"/assembly.fq.results/mother", exist_ok=True)
                         os.makedirs(args.work_dir+"/assembly.fq.results/num", exist_ok=True)
-                # assembly
+                # 多线程-assembly
                 logging.info("Correcting structural variants by local assembly.")
                 sv_extension_scope = 1000
                 nearsv_maxnum = 50
@@ -1419,6 +1501,9 @@ def main_ctrl(args, argv):
                         sv_fam_ls.append(phasing_fam_results[family_member_i][chr])
                     nearby_list = []
                     for sv_i in range(len(sv_fam_ls[0])-1) :
+                        #if int(sv_fam_ls[0][sv_i][2]) == 135365556 :
+                        #    print(sv_i)
+                        #    print(nearby_list)
                         if int(sv_fam_ls[0][sv_i+1][2]) - int(sv_fam_ls[0][sv_i][2]) < sv_extension_scope :
                             if len(nearby_list) == 0 or (len(nearby_list) > 0 and nearby_list[-1][1] != -1) :
                                 if len(nearby_list) > 0 and max([abs(x) for x in nearby_list[-1][2]]) < 50 :
@@ -1435,6 +1520,8 @@ def main_ctrl(args, argv):
                             nearby_list[-1][2].append(int(sv_fam_ls[0][sv_i][3]))
                     if len(nearby_list) > 0 and nearby_list[-1][1] == -1 :
                         nearby_list[-1][1] = len(sv_fam_ls[0])-1
+                    #logging.info([x[0:3] for x in nearby_list])
+                    #logging.info(nearby_list)
                     for near_sv_index in range(len(nearby_list)) :
                         if near_sv_index == 0 :
                             near_sta = 0
@@ -1454,6 +1541,28 @@ def main_ctrl(args, argv):
                             else :
                                 near_end = len(sv_fam_ls[0])-1
                             homo_range = [nearby_list[near_sv_index][0]-near_sta,near_end-near_sta]
+                        #if int(sv_fam_ls[0][near_sta][2]) == 133204228 :
+                        #run_assembly([temporary_dir,
+                        #         chr, 
+                        #         [svs[near_sta:near_end+1] for svs in sv_fam_ls], 
+                        #         child_hap1_results[chr][near_sta:near_end+1], 
+                        #         child_hap2_results[chr][near_sta:near_end+1], 
+                        #         father_hap1_results[chr][near_sta:near_end+1], 
+                        #         father_hap2_results[chr][near_sta:near_end+1], 
+                        #         mother_hap1_results[chr][near_sta:near_end+1], 
+                        #         mother_hap2_results[chr][near_sta:near_end+1], 
+                        #         [near_sta,near_end],
+                        #         homo_range, 
+                        #         args.family_mode, 
+                        #         input_file_ls, 
+                        #         minimum_support_reads_list, 
+                        #         args.remap_merge_k, 
+                        #         args.remap_minimizer_window, 
+                        #         args.assembly_correction_threshold,
+                        #         args.assembly_correction_setting,
+                        #         args.family_assembly_reads, 
+                        #         args.similarity_supplement_threshold,
+                        #         args.assembly_accelerate])
                         
                         para = [(temporary_dir,
                                  chr, 
@@ -1487,6 +1596,7 @@ def main_ctrl(args, argv):
                     for res in result:
                         try:
                             chr, svs = res.get()[0]
+                            #logging.info(res.get()[0])
                             if chr not in phasing_results.keys() :
                                 phasing_results[chr]=[]
                             phasing_results[chr].extend(svs[family_member_i])
@@ -1494,8 +1604,48 @@ def main_ctrl(args, argv):
                             pass
                     phasing_fam_results.append(phasing_results)
             
-            # No phasing
+            '''
+            # 多线程
+            pahsing_pools = Pool(processes=args.threads)
+            #logging.info(int(math.ceil(args.threads/8)))
+            for chr in phasing_fam_results[0].keys():
+                sv_fam_ls = []
+                for family_member_i in range(len(family_member_ls)) :
+                    sv_fam_ls.append(phasing_fam_results[family_member_i][chr])
+                para = [(temporary_dir,
+                         chr, 
+                         sv_fam_ls, 
+                         args.family_mode, 
+                         args.read_pos_interval,
+                         minimum_support_reads_list,
+                         args.phase_all_ctgs,
+                         args.parents_phasing,
+                         input_file_ls,
+                         args.remap_merge_k,
+                         args.remap_minimizer_window,
+                         args.assembly_correction_threshold)]
+                result.append(pahsing_pools.map_async(run_phasing, para))
+            
+            pahsing_pools.close()
+            pahsing_pools.join()
+            
+            phasing_fam_results=[]
+            for family_member_i in range(len(family_member_ls)) :
+                phasing_results = {}
+                for res in result:
+                    try:
+                        chr, svs = res.get()[0]
+                        #logging.info(res.get()[0])
+                        if chr not in phasing_results.keys() :
+                            phasing_results[chr]=[]
+                        phasing_results[chr].extend(svs[family_member_i])
+                    except:
+                        pass
+                phasing_fam_results.append(phasing_results)
+            '''
+            # 处理不需phasing的变异类型
             result = list()
+            # 单线程
             for chr in no_phasing_fam_results[0].keys():
                 sv_fam_ls = []
                 for family_member_i in range(len(family_member_ls)) :
@@ -1513,10 +1663,12 @@ def main_ctrl(args, argv):
                 for res in result:
                     try:
                         chr, svs = res[0], res[1]
+                        #logging.info(res.get()[0])
                         if chr not in no_phasing_results.keys() :
                             no_phasing_results[chr]=[]
                         no_phasing_results[chr].extend(svs[family_member_i])
                     except:
+                        #logging.info(res[0])
                         pass
                 no_phasing_fam_results.append(no_phasing_results)
         
@@ -1536,16 +1688,27 @@ def main_ctrl(args, argv):
             for chr in results.keys() :
                 results[chr] = sorted(results[chr], key=lambda x: (int(x[2]),int(x[3])))
                 
-        # remove duplicate variants
+        # 去重
         for chr in fam_results[0].keys() : 
             fam_sv_ls = []
             for fam_i in range(len(fam_results)) :
                 fam_sv_ls.append(fam_results[fam_i][chr])
+            #for x in range(len(fam_sv_ls[0])) :
+            #    if int(fam_sv_ls[0][x][2]) == 811560 :
+            #        logging.info(fam_sv_ls[0][x])
             fam_sv_ls = remove_redundant_samesv(chr, fam_sv_ls, args.family_mode)
+            #for x in range(len(fam_sv_ls[0])) :
+            #    if int(fam_sv_ls[0][x][2]) == 811560 :
+            #        logging.info(fam_sv_ls[0][x])
             fam_sv_ls = remove_redundant_pos(chr, fam_sv_ls, args.family_mode)
+            #for x in range(len(fam_sv_ls[0])) :
+            #    if int(fam_sv_ls[0][x][2]) == 811560 :
+            #        logging.info(fam_sv_ls[0][x])
             
             for fam_i in range(len(fam_results)) :
                 fam_results[fam_i][chr] = fam_sv_ls[fam_i]
+
+
 
         empty_chr_ls = []
         for chr in fam_results[0].keys():
@@ -1575,7 +1738,10 @@ def main_ctrl(args, argv):
         logging.info("Writing to your output file.")
         with open("%s/%s.contigINFO.pickle"%(temporary_dir,args.family_mode), "rb") as f:
             contigINFO = pickle.load(f)
-
+        #logging.info(contigINFO)
+        
+        #results = fam_results[i]
+        #family_member = family_member_ls[i]
         svid = dict()
         svid["INS"] = 0
         svid["DEL"] = 0
@@ -1591,7 +1757,65 @@ def main_ctrl(args, argv):
                 res_ls.append(fam_results[i][chrom])
             generate_output(args, res_ls, chrom, temporary_dir)
         
+        
+        #if args.performing_phasing :
+        #    for chrom in chroms:
+        #        res_ls = []
+        #        for i in range(len(fam_results)) :
+        #            res_ls.append(fam_results[i][chrom])
+        #        generate_output(args, res_ls, chrom, temporary_dir)
+        #else :
+        #    analysis_pools = Pool(processes=int(args.threads))
+        #    paras=[]
+        #    for chrom in chroms:
+        #        paras.append((args, [fam_results[i][chrom] for i in range(len(fam_results))], chrom, temporary_dir))
+        #    _=analysis_pools.starmap_async(generate_output, paras)
+        #    analysis_pools.close()
+        #    analysis_pools.join()
+        
+        '''
+        for i in range(len(fam_results)) :
+            results = fam_results[i]
+            family_member = family_member_ls[i]
+            svid = dict()
+            svid["INS"] = 0
+            svid["DEL"] = 0
+            svid["BND"] = 0
+            svid["DUP"] = 0
+            svid["INV"] = 0
+            chroms=sorted(results.keys())
+            os.mkdir("%s%s.%s.results"%(temporary_dir,args.family_mode,family_member))
+            
+            #analysis_pools = Pool(processes=int(args.threads))
+            #paras=[]
+            #for chrom in chroms:
+            #    paras.append((args, results[chrom], chrom, temporary_dir, family_member))
+            #_=analysis_pools.starmap_async(generate_output, paras)
+            #analysis_pools.close()
+            #analysis_pools.join()
+            
+            if args.performing_phasing :
+                #for chrom in chroms:
+                #    generate_output(args, results[chrom], chrom, temporary_dir, family_member)
+                analysis_pools = Pool(processes=int(args.threads))
+                paras=[]
+                for chrom in chroms:
+                    paras.append((args, results[chrom], chrom, temporary_dir, family_member))
+                _=analysis_pools.starmap_async(generate_output, paras)
+                analysis_pools.close()
+                analysis_pools.join()
+            else :
+                analysis_pools = Pool(processes=int(args.threads))
+                paras=[]
+                for chrom in chroms:
+                    paras.append((args, results[chrom], chrom, temporary_dir, family_member))
+                _=analysis_pools.starmap_async(generate_output, paras)
+                analysis_pools.close()
+                analysis_pools.join()
+        '''
+        #return
         file = open(args.output, 'w')
+        #logging.info(contigINFO)
         Generation_VCF_header(file, contigINFO, args.sample, argv)
         header_line = "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT"
         for family_member in family_member_ls :
@@ -1604,14 +1828,18 @@ def main_ctrl(args, argv):
                 while True:
                     try:
                         lines = pickle.load(f)
+                        #logging.info(lines)
                         pickle_data.append(lines)
                     except EOFError:
+                        #logging.info("%s%s.%s.results/%s.pickle"%(temporary_dir,args.family_mode,family_member,chrom))
                         break
             for i in range(len(pickle_data)) :
+                #logging.info(len(pickle_data_ls[0][i]))
                 for j in range(len(pickle_data[i])) :
                     qual_ls = []
                     filter_ls = []
                     s,t = pickle_data[i][j]
+                    #logging.info(line)
                     file.write(t.replace("<SVID>",str(svid[s])))
                     svid[s]+=1
         file.close()
@@ -1636,6 +1864,9 @@ def setupLogging(debug=False):
 def run(argv):
     args = parseArgs(argv)
     setupLogging(False)
+    #logging.info(argv)
+    #logging.info(args)
+    #logging.info("XXXXXXXXXXXXXXXXXXXXXXXXXXXX")
     starttime = time.time()
     main_ctrl(args, argv)
     logging.info("Finished in %0.2f seconds."%(time.time() - starttime))

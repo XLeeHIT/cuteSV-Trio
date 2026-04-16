@@ -5,6 +5,7 @@ src/cuteSVTrio/CommandRunner.py
 src/cuteSVTrio/__init__.py
 src/cuteSVTrio/cuteSVTrio
 src/cuteSVTrio/cuteSVTrio_Description.py
+src/cuteSVTrio/cuteSVTrio_assembly.py
 src/cuteSVTrio/cuteSVTrio_genotype.py
 src/cuteSVTrio/cuteSVTrio_mendel.py
 src/cuteSVTrio/cuteSVTrio_phasing.py

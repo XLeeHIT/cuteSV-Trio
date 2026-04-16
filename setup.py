@@ -12,7 +12,7 @@ setup(
     description = "Long-read-based human genomic structural variation detection with cuteSVTrio",
     author = "Lixin",
     author_email = "xinli01@stu.hit.edu.cn",
-    url = "https://github.com/tjiangHIT/cuteSVTrio",
+    url = "https://github.com/XLeeHIT/cuteSVTrio",
     license = "MIT",
     packages = find_packages("src"),
     package_dir = {"": "src"},
@@ -22,5 +22,5 @@ setup(
     long_description = readme,
     long_description_content_type = 'text/markdown',
     zip_safe = False,
-    install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn'],
+    install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn', 'pyabpoa', 'mappy'],
 )

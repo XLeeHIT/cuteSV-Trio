@@ -15,6 +15,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     chr:	chromosome id
     svtype:	<INV>
     '''
+    # INV检测还有一些非常相近的长度接近的fp可以解决，进一步提高presicion
     # Initialization of some temporary variables
     start_time = time.time()
     semi_inv_cluster = list()
@@ -30,6 +31,8 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     for family_member in family_member_ls :
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"sigindex"), 'rb') as f:
             sigs_index=pickle.load(f)
+            #if family_member == "1" :
+            #    logging.info(sigs_index["INS"])
             f.close()
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"INV"), 'rb') as f:
             if chr not in sigs_index["INV"].keys() :
@@ -42,12 +45,21 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
         
     if len(seqs) == 0 :
         return
+    #for i in range(len(seqs)) :
+    #    seqs[i][0] = "++"
     seqs = sorted(seqs, key=lambda x: (int(x[1]),int(x[2])))
     for seq in seqs:
+        #logging.info(seq)
         strand = "++"
         breakpoint_1_in_read = int(seq[1])
         breakpoint_2_in_read = int(seq[2])
+        #if chr == "2" and breakpoint_1_in_read > 30473576 and breakpoint_1_in_read < 30474576 :
+        #    logging.info("%s/%s/%s"%(str(strand),str(breakpoint_1_in_read),str(breakpoint_2_in_read)))
         read_id = seq[3]
+
+        # print("new")
+        # print(seq[1], seq[2], seq[3], seq[4], seq[5])
+        # print(semi_inv_cluster)
 
         if breakpoint_1_in_read - semi_inv_cluster[-1][0] > max_cluster_bias or breakpoint_2_in_read - semi_inv_cluster[-1][1] > max_cluster_bias or strand != semi_inv_cluster[-1][-1]:
             if len(semi_inv_cluster) >= read_count:
@@ -87,6 +99,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
                                       gt_round,
                                       family_mode,
                                       performing_phasing)
+    #logging.info(candidate_single_SV)
     candidate_single_SV_fam_ls = []
     candidate_single_SV_fam_ls.append(candidate_single_SV)
     for i in range(1,len(family_member_ls)) :
@@ -101,6 +114,9 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
             fam_reads[int(candidate_single_SV[i][6][j][3])-1].append(candidate_single_SV[i][6][j])
             if performing_phasing :
                 reads_pos[int(candidate_single_SV[i][6][j][3])-1].append(candidate_single_SV[i][8][j])
+        #for j in range(len(family_member_ls)) :
+        #    if len(fam_reads[j]) != len(reads_pos[j]) :
+        #        logging.info("%s/%s"%(str(fam_reads[j]),str(reads_pos[j])))
         candidate_single_SV_fam_ls[0][i][6] = fam_reads[0]
         candidate_single_SV_fam_ls[0][i][8] = reads_pos[0]
         for j in range(1,len(family_member_ls)) :
@@ -108,11 +124,20 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
             fam_candidate_other[j][8] = reads_pos[j]
             candidate_single_SV_fam_ls[j].append(fam_candidate_other[j])
 
+    #if chr == "2" :
+    #    for i in range(len(candidate_single_SV_fam_ls[0])) :
+    #        if candidate_single_SV_fam_ls[0][i][2] > 30473576 and candidate_single_SV_fam_ls[0][i][2] < 30474576 :
+    #            logging.info(candidate_single_SV_fam_ls[0][i])
+    #            logging.info(candidate_single_SV_fam_ls[1][i])
+    #            logging.info(candidate_single_SV_fam_ls[2][i])
     candidate_single_SV_gt_fam_ls = []
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
+        #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 1000, 'INS', family_mode, family_member)
         candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing))
+    #logging.info("INV/%s/%d/%s"%(chr,len(candidate_single_SV_gt_fam_ls[0]),str(candidate_single_SV_gt_fam_ls[0][0:10])))
     standard_list = 0
+    #logging.info(candidate_single_SV_gt_fam_ls[0][0:10])
     for i in range(len(candidate_single_SV_gt_fam_ls)) :
         if len(candidate_single_SV_gt_fam_ls[i]) != 0 :
             standard_list = i
@@ -121,6 +146,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
         if len(candidate_single_SV_gt_fam_ls[i]) == 0 :
             candidate_single_SV_gt_fam_ls[i] = copy.deepcopy(candidate_single_SV_gt_fam_ls[standard_list])
             for s_v in candidate_single_SV_gt_fam_ls[i] :
+                #logging.info(s_v)
                 s_v[8] = "0/0"
                 s_v[9] = "0,100,100,0,0,0,0,0,0"
                 s_v[10] = 996
@@ -129,11 +155,28 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
                 s_v[15] = ""
                 s_v[16] = ""
                 s_v[17] = ""
-    
+    #if chr == "2" :
+    #    for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
+    #        if int(candidate_single_SV_gt_fam_ls[0][i][2]) > 30473576 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 30474576 :
+    #            logging.info(candidate_single_SV_gt_fam_ls[0][i])
+    #            logging.info(candidate_single_SV_gt_fam_ls[1][i])
+    #            logging.info(candidate_single_SV_gt_fam_ls[2][i])
     increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INV', minimum_support_reads_list, family_mode)
+    #if chr == "2" :
+    #    for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
+    #        if int(candidate_single_SV_gt_fam_ls[0][i][2]) > 30473576 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 30474576 :
+    #            logging.info(candidate_single_SV_gt_fam_ls[0][i])
+    #            logging.info(candidate_single_SV_gt_fam_ls[1][i])
+    #            logging.info(candidate_single_SV_gt_fam_ls[2][i])
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'INV', family_mode)
     if not performing_phasing and family_mode == "M1" :
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+    #if not performing_phasing :
+    #    resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, performing_phasing)
+    #unsolvable_correction(candidate_single_SV_gt_fam_ls, 'INV', family_mode, family_member)
+    #not_accord_mendel_num,run_mcmc_num,run_mcmc_ls=resolution_mendel(candidate_single_SV_gt_fam_ls,'INV',family_mode, gap_thres)
+    #resolution_denovo(candidate_single_SV_gt_fam_ls, 'INV', family_mode)
+    #modify_genotype(candidate_single_SV_gt_fam_ls, 'INV')
     
     logging.info("Finished calling %s:%s:%f."%(chr, "INV", time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
@@ -145,6 +188,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
     family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
     strand = semi_inv_cluster[0][-1]
 
+    #logging.info(semi_inv_cluster)
     read_id = [i[2] for i in semi_inv_cluster]
     pos_list = [i[0] for i in semi_inv_cluster]
     support_read = len(list(set(read_id)))
@@ -153,13 +197,18 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
 
     inv_cluster_b2 = sorted(semi_inv_cluster, key = lambda x:x[1])
 
+    # breakpoint_1 = np.mean(breakpoint_1_candidate)
     last_bp = inv_cluster_b2[0][1]
     temp_count = 1
+    # max_count = 0
     temp_sum_b1 = inv_cluster_b2[0][0]
     temp_sum_b2 = last_bp
 
+    # max_sum = 0
     temp_id = dict()
+    #logging.info(inv_cluster_b2[0])
     temp_id[inv_cluster_b2[0][2]] = [0,inv_cluster_b2[0][0],inv_cluster_b2[0][1],inv_cluster_b2[0][2]]
+    #logging.info(inv_cluster_b2[0])
 
     for i in inv_cluster_b2[1:]:
         if i[1] - last_bp > max_cluster_bias:
@@ -170,7 +219,12 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
                 breakpoint_2 = round(temp_sum_b2 / temp_count)
                 inv_len = breakpoint_2 - breakpoint_1
                 if inv_len >= sv_size and max_count_id >= read_count:
+                    # candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
                     if inv_len <= MaxSize or MaxSize == -1:
+                        #logging.info(temp_id)
+                        #logging.info([chr, svtype, breakpoint_1, inv_len, max_count_id,strand,list(temp_id.keys()),breakpoint_2])
+                        #tmp = [temp_id[key] for key in temp_id.keys()]
+                        #logging.info(tmp)
                         fam_allele_len_ls = [[] for x in family_member_ls]
                         for key in temp_id.keys() :
                             fam_allele_len_ls[int(temp_id[key][3][3])-1].append(abs(int(temp_id[key][2])-int(temp_id[key][1])))
@@ -190,6 +244,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
                                                     breakpoint_2,
                                                     [temp_id[key][1] for key in temp_id.keys()],
                                                     sv_len_str[:-1]])
+                        # print(chr, svtype, str(int(breakpoint_1)), str(int(inv_len)), str(max_count_id), str(DR), str(GT), strand)
 
             temp_id = dict()
             temp_count = 1
@@ -211,7 +266,10 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
         breakpoint_2 = round(temp_sum_b2 / temp_count)
         inv_len = breakpoint_2 - breakpoint_1
         if inv_len >= sv_size and max_count_id >= read_count:
+            # candidate_single_SV.append('%s\t%s\t%d\t%d\t%d\n'%(chr, svtype, breakpoint_1, breakpoint_2, max_count_id))
             if inv_len <= MaxSize or MaxSize == -1:
+                #tmp = [temp_id[key] for key in temp_id.keys()]
+                #logging.info(tmp)
                 fam_allele_len_ls = [[] for x in family_member_ls]
                 for key in temp_id.keys() :
                     fam_allele_len_ls[int(temp_id[key][3][3])-1].append(abs(int(temp_id[key][2])-int(temp_id[key][1])))
@@ -231,11 +289,13 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
                                             breakpoint_2,
                                             [temp_id[key][1] for key in temp_id.keys()],
                                             sv_len_str[:-1]])
+                # print(chr, svtype, str(int(breakpoint_1)), str(int(inv_len)), str(max_count_id), str(DR), str(GT), strand)
 
 def run_inv(args):
     return resolution_INV(*args)
 
 def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing):
+    # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
         f.close()    
@@ -247,6 +307,8 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     readsfile.close()
 
     svs_list = list()
+    #for item in candidate_info_SV:
+    #    svs_list.append((max(item[2] - max_cluster_bias, 0), item[7] + max_cluster_bias))
     for item in candidate_info_SV:
         svs_list.append((max(item[2] - max_cluster_bias, 0), item[2] + max_cluster_bias))
     for item in candidate_info_SV:
