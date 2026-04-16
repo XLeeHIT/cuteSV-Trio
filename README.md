@@ -1,4 +1,4 @@
-# cuteSV-Trio:Accurate and high-effectiveness long-read calling and phasing structural variant detector in family trios
+# cuteSV-Trio: Haplotype-Resolved and *De Novo* Structural Variant Detection from Low-Coverage Long-Read Family Trios data
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![Language](https://img.shields.io/badge/language-shell-4EAA25)
@@ -36,18 +36,18 @@
 
 ## Introduction
 
-cuteSV-Trio, a haplotype-phased SV caller designed for trio-based low-coverage long-read sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel multi-feature clustering strategies to achieve high-precision haplotype-aware SV detection and accurate de novo SV identification. The family clustering approach is applied to characterize genomic features between family signatures, combining an error-specific optimisation to correct common errors in SV detection. Our comprehensive evaluations demonstrate that cuteSV-Trio achieves superior cost-performance efficiency compared with tools for both SV variant calling and phasing across varying sequencing depths in trio samples. cuteSV-Trio outperforms existing SV calling methods while requiring fewer sequencing data for comparable accuracy. cuteSV-Trio additionally achieves obvious improvement in haplotype-phasing rates, detects truer de novo SVs compared to other approaches. Through systematic evaluation of trio modeling advantages, we also established quantitative evidence for enhanced resolution in de novo variation detection and improved specificity in TE classification. These advancements established a new paradigm for family genome analysis, fundamentally enabling cost-effective trio-based SV detection while providing the first computational evidence for inheritance-driven quality enhancement in datasets.
+Long-read sequencing technologies have advanced structural variant (SV) detection into an era of full-spectrum characterization. While family trio-based high-coverage sequencing enhances SV detection resolution, its prohibitive cost and limited utilization of genetic intrinsic properties pose significant barriers to widespread adoption. To address this challenge, we introduce cuteSV-Trio, a haplotype-resolved and *de novo* SV caller designed for low-coverage long-read trio sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel family-wide clustering strategies to achieve high-precision haplotype-resolved SV detection and outstanding *de novo* SV identification. Benchmarking across orthogonal datasets demonstrates that cuteSV-Trio outperforms existing SV calling methods by 0.32%-25.92% in Genotype-F1 score. Moreover, cuteSV-Trio reduces haplotype-phasing error rates by ~17% and detects ~28% more precise *de novo* SVs. In addition, it is well-suited for constructing comprehensive population SV atlases and high-quality reference panels, improving the imputation accuracy by 33%. By dramatically reducing sequencing costs while improving detection accuracy, cuteSV-Trio represents a paradigm shift for trio-based and population-scale SV studies.
 
 
 ------
 
 
 ## Workflow
-cuteSV-Trio utilizes low-coverage long-read alignments from three family members (i.e., two parents and their offspring) to detect haplotype-resolved SVs within the trio. The method consists of four major steps designed to achieve high-performance SV detection
+cuteSV-Trio utilizes low-coverage long-read alignments from three family members (i.e., two parents and their offspring) to detect haplotype-resolved SVs within the trio. The method consists of five major steps designed to achieve high-performance SV detection
 
 <div align="center">
   <a target="_blank">
-    <img src="images/overflow.png" width = "600" alt="Overflow">
+    <img src="images/overflow.png" width = "900" alt="Overflow">
   </a>
 </div>
 
@@ -55,9 +55,12 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 
 **Step 2**: Apply the stepwise refinement clustering strategy proposed by cuteSV to group SV signatures based on their genomic coordinates and variant sizes. Next, separate alternative-allele-supporting reads and reference-allele-supporting reads according to the individual labels within each cluster. Then, use a Maximum Likelihood Estimation (MLE) model to compute preliminary genotypes for each SV in each individual.
 
-**Step 3**: Assess the genotype of each SV locus at the family level using Mendelian inheritance patterns and identify inconsistencies for correction. By correction in three main scenarios, cuteSV-Trio utilizes the corresponding family-level cluster to calculate trio-based joint genotypes, which are then used to assist in correcting the offspring’s genotype.
+**Step 3**: Assess the genotype of each SV locus at the family level using Mendelian inheritance patterns and identify inconsistencies for correction. By correction in three main scenarios, cuteSV-Trio utilizes the corresponding family-level cluster to calculate trio-based joint genotypes, which are then used to assist in correcting the family members’ genotype.
 
-**Step 4**: Leverage Mendelian inheritance patterns and long-read linkage information to construct haplotype-resolved SV callsets. CuteSV integrates the inheritance information and sequence linkage information of SV, correctly and conveniently assign each SV to the haplotype that maximizes Mendelian consistency.
+**Step 4**: Leverage Mendelian inheritance patterns and long-read linkage information to construct haplotype-resolved SV callsets. CuteSV integrates the inheritance information and sequence linkage information of SV, correctly and conveniently assign each SV to the haplotype that maximizes Mendelian consistency. 
+
+**Step 5**: Afterwards, refine the SV genotypes of all members on the binary read sets after haplotype resolution. To address SV genotype errors caused by three types of sequencing reads imbalances, cuteSV-Trio refines SVs based on the distribution of haplotyped reads.
+
 
 
 ------
@@ -66,7 +69,7 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 ## Installation
 
 ```
-git clone https://github.com/QianZixi/cuteSV-Trio && cd cuteSVTrio/ && python setup.py install 
+git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python setup.py install 
 ```
 
 
@@ -224,10 +227,20 @@ v0.3.0 (July 15, 2025) :
 1. Added processing to address some mosaic variations.
 2. Addressing the issue of POS abnormalities in special chromosomes of hg38.
 
+v0.4.0 (November 9, 2025) : 
+1. Add a method to correct gt based on the read distribution of SV on the two haps after phasing.
+2. Add an optional local assembly module to correct potential errors across the whole genome.
+
+v0.5.0 (December 10, 2025) : 
+1. In the local assembly module, a function has been added to supplement child sequences from parent sequencing data based on sequence similarity.
+2. Add an algorithm to correct genotypes based on Mendelian disorder in non-newborn svs.
+
+v1.0.0 (April 16, 2026) : 
+1. The official version accompanying the formal paper submission.
 
 ------
 
 
 ## Contact
 
-For advising, bug reporting and requiring help, please post on [Github Issue](https://github.com/QianZixi/cuteSV-Trio) or contact xinli01@stu.hit.edu.cn.
+For advising, bug reporting and requiring help, please post on [Github Issue](https://github.com/XLeeHIT/cuteSV-Trio) or contact xinli01@stu.hit.edu.cn.
