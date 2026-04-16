@@ -21,8 +21,6 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
     for family_member in family_member_ls :
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"sigindex"), 'rb') as f:
             sigs_index=pickle.load(f)
-            #if family_member == "1" :
-            #    logging.info(sigs_index["INS"])
             f.close()
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"DUP"), 'rb') as f:
             if chr not in sigs_index["DUP"].keys() :
@@ -31,20 +29,15 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
             f.seek(sigs_index["DUP"][chr])
             f_seqs = pickle.load(f)
             seqs += f_seqs
-            #if family_member == "1" and chr == "GL000243.1":
-            #    logging.info(f_seqs)
             f.close()
 
     if len(seqs) == 0 :
         return
     seqs = sorted(seqs, key=lambda x: x[0])
-    #if chr == "chr1" :
-    #    logging.info(seqs)
     for seq in seqs:
         pos_1 = int(seq[0])
         pos_2 = int(seq[1])
         read_id = seq[2]
-        # if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias or pos_2 - semi_dup_cluster[-1][1] > max_cluster_bias:
         if pos_1 - semi_dup_cluster[-1][0] > max_cluster_bias:
             if len(semi_dup_cluster) >= read_count:
                 if semi_dup_cluster[-1][0] == semi_dup_cluster[-1][1] == 0:
@@ -85,11 +78,6 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
                                  performing_phasing)
     candidate_single_SV_fam_ls = []
     candidate_single_SV_fam_ls.append(candidate_single_SV)
-    #logging.info(candidate_single_SV[0])
-    #logging.info(candidate_single_SV[1])
-    #logging.info(candidate_single_SV[2])
-    #logging.info(candidate_single_SV[3])
-    #logging.info(candidate_single_SV[4])
     for i in range(1,len(family_member_ls)) :
         candidate_single_SV_fam_ls.append([])
     for i in range(len(candidate_single_SV)) :
@@ -102,9 +90,6 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
             fam_reads[int(candidate_single_SV[i][4][j][3])-1].append(candidate_single_SV[i][4][j])
             if performing_phasing :
                 reads_pos[int(candidate_single_SV[i][4][j][3])-1].append(candidate_single_SV[i][5][j])
-        #for j in range(len(family_member_ls)) :
-        #    if len(fam_reads[j]) != len(reads_pos[j]) :
-        #        logging.info("%s/%s"%(str(fam_reads[j]),str(reads_pos[j])))
         candidate_single_SV_fam_ls[0][i][4] = fam_reads[0]
         candidate_single_SV_fam_ls[0][i][5] = reads_pos[0]
         for j in range(1,len(family_member_ls)) :
@@ -112,15 +97,10 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
             fam_candidate_other[j][5] = reads_pos[j]
             candidate_single_SV_fam_ls[j].append(fam_candidate_other[j])
     
-    #if chr == "chr1" :
-    #    logging.info(candidate_single_SV_fam_ls)
     candidate_single_SV_gt_fam_ls = []
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
-        #gt_candidate_sv = call_gt(path, chr, candidate_single_SV_fam_ls[i], 100, 'INS', family_mode, family_member)
         candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing))
-    #logging.info("DUP/%s/%d/%s"%(chr,len(candidate_single_SV_gt_fam_ls[0]),str(candidate_single_SV_gt_fam_ls[0][0:10])))
-    #logging.info(candidate_single_SV_gt_fam_ls)
     standard_list = 0
     for i in range(len(candidate_single_SV_gt_fam_ls)) :
         if len(candidate_single_SV_gt_fam_ls[i]) != 0 :
@@ -138,28 +118,15 @@ def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_read
                 s_v[15] = ""
                 s_v[16] = ""
                 s_v[17] = ""
-                #logging.info(s_v)
-    #logging.info("%s/%s"%(chr,str(candidate_single_SV_gt_fam_ls)))
-    #if chr == "1" :
-    #    logging.info(candidate_single_SV_gt_fam_ls)
     increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DUP', minimum_support_reads_list, family_mode)
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'DUP', family_mode)
     if not performing_phasing and family_mode == "M1" :
         resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
-    #如果非INDEL的sv参与phasing，那么可能会在phasing部分进行denovo分析
-    #if not performing_phasing :
-    #    resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, performing_phasing)
-    #unsolvable_correction(candidate_single_SV_gt_fam_ls, 'DUP', family_mode, family_member)
-    #not_accord_mendel_num,run_mcmc_num,run_mcmc_ls=resolution_mendel(candidate_single_SV_gt_fam_ls,'DUP',family_mode, gap_thres)
-    #resolution_denovo(candidate_single_SV_gt_fam_ls, 'DUP', family_mode)
-    #modify_genotype(candidate_single_SV_gt_fam_ls, 'DUP')
     logging.info("Finished calling %s:%s:%f."%(chr, "DUP", time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
 
 def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias, 
     sv_size, candidate_single_SV, MaxSize, gt_round, family_mode, performing_phasing):
-    # calculate support reads
-    #logging.info(semi_dup_cluster)
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
     family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
@@ -182,7 +149,6 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
         fam_allele_len_ls = [[] for x in family_member_ls]
         for j in i :
             if j[2] not in support_read :
-                #logging.info(j)
                 support_read.append(j[2])
                 pos_ls.append(j[0])
                 fam_allele_len_ls[int(j[2][3])-1].append(abs(int(j[1])-int(j[0])))
@@ -192,7 +158,6 @@ def generate_dup_cluster(semi_dup_cluster, chr, read_count, max_cluster_bias,
         sv_len_str = ""
         for fam_i in range(len(fam_allele_len_ls)) :
             sv_len_str = sv_len_str + str(int(np.mean(fam_allele_len_ls[fam_i]))) + ","
-        #logging.info(i)
         if len(support_read) < read_count:
             continue
         low_b = int(len(i)*0.4)
@@ -230,7 +195,6 @@ def run_dup(args):
     return resolution_DUP(*args)
 
 def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing):
-    # reads_list = list() # [(10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'), ...]
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
         f.close()    

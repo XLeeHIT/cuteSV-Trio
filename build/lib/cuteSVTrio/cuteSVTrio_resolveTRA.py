@@ -20,7 +20,6 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
     start_time = time.time()
     semi_tra_cluster = list()
     semi_tra_cluster.append([0,0,'','N'])
-    #candidate_single_SV = list()
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
     family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
@@ -31,8 +30,6 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
     for family_member in family_member_ls :
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"sigindex"), 'rb') as f:
             sigs_index=pickle.load(f)
-            #if family_member == "1" :
-            #    logging.info(sigs_index["INS"])
             f.close()
         with open("%s%s.%s.%s.pickle"%(path,family_mode,family_member,"TRA"), 'rb') as f:
             if chr_1 not in sigs_index["TRA"].keys() :
@@ -41,10 +38,7 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
             f.seek(sigs_index["TRA"][chr_1])
             f_seqs = pickle.load(f)
             seqs += f_seqs
-            #if family_member == "1" and chr == "GL000243.1":
-            #    logging.info(f_seqs)
             f.close()
-    #logging.info(len(seqs))
     if len(seqs) == 0 :
         return
     seqs = sorted(seqs, key=lambda x: x[0])
@@ -52,7 +46,6 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
 
     for seq in seqs:
         if seq[2]!=chr_2:
-            #logging.info("Finished %s-%s:%s:%f."%(chr_1, chr_2, "TRA/BND", time.time()-start_time))
             if len(semi_tra_cluster) >= read_count:
                 if semi_tra_cluster[-1][0] == semi_tra_cluster[-1][1] == 0:
                     pass
@@ -107,19 +100,14 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
                                       max_cluster_bias, 
                                       candidate_single_SV,
                                       gt_round)
-    #logging.info(candidate_single_SV)
     candidate_single_SV_fam_ls = [[] for x in family_member_ls]
     for i in range(len(candidate_single_SV)) :
         candidate_SV_fam = [copy.deepcopy(candidate_single_SV[i]) for x in family_member_ls]
         for j in candidate_SV_fam :
             j[12] = []
-        #logging.info(candidate_single_SV[i])
         for j in range(len(candidate_single_SV[i][12])) :
-            #logging.info(candidate_single_SV[i][12][j])
-            #logging.info(candidate_single_SV[i][12][j][3])
             candidate_SV_fam[int(candidate_single_SV[i][12][j][3])-1][12].append(candidate_single_SV[i][12][j])
         retain_flag = False
-        #logging.info(candidate_SV_fam)
         for j in range(len(candidate_SV_fam)) :
             if len(candidate_SV_fam[j][12]) >= minimum_support_reads_list[j] :
                 retain_flag = True
@@ -131,10 +119,9 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
                 else :
                     candidate_SV_fam[j][12] = ""
                     candidate_single_SV_fam_ls[j].append(candidate_SV_fam[j])
-    # 形成gt
+    # generate gt
     for i in range(len(candidate_single_SV_fam_ls)) :
         for j in range(len(candidate_single_SV_fam_ls[i])) :
-            #logging.info("%s/%d/%d"%(chr_1,i,j))
             if candidate_single_SV_fam_ls[i][j][12] == "" :
                 DV, DR, GT, GL, GQ, QUAL = "0","0","0/0","0,100,100,0,0,0,0,0,0","0","0"
             else :
@@ -147,13 +134,8 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
                                                    max_cluster_bias, 
                                                    gt_round)
             candidate_single_SV_fam_ls[i][j][7:12] = [str(DR),str(GT),str(GL),str(GQ),str(QUAL)]
-    # Todo:如果所有个体的sv质量控制都是q5，那么删除该记录，否则会有大量的多余BND 
-    #logging.info(candidate_single_SV_fam_ls)
+
     resolution_mendel(candidate_single_SV_fam_ls, family_mode, True, minimum_support_reads_list)
-    #if not performing_phasing :
-    #    resolution_mendel(candidate_single_SV_fam_ls, family_mode, performing_phasing)
-
-
 
     logging.info("Finished calling %s:%s:%f."%(chr_1, "TRA/BND", time.time()-start_time))
     return (chr_1,candidate_single_SV_fam_ls)
@@ -186,8 +168,6 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
 
     if len(temp) > 1 and len(set(temp[1][2])) >= 0.5*read_count:
         if len(set(temp[0][2]))+len(set(temp[1][2])) >= len(semi_tra_cluster)*overlap_size:
-            # candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
-            # candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[1][0]/temp[1][2]), chr_2, int(temp[1][1]/temp[1][2]), len(read_tag)))
             BND_pos_1 = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
             BND_pos_2 = "%s:%s"%(chr_2, int(temp[1][1]/len(temp[1][2])))
             if BND_type == 'A':
@@ -205,20 +185,6 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
             else:
                 return
 
-            #if action:
-            #    import time
-            #    # time_start = time.time()
-            #    DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-            #                                int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, set(temp[0][2]), 
-            #                                max_cluster_bias, gt_round)
-            #    # cost_time = time.time() - time_start
-            #    # print("BND", chr_1, chr_2, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), DR, DV, QUAL, "%.4f"%cost_time)
-            #else:
-            #    DR = '.'
-            #    GT = './.'
-            #    GL = '.,.,.'
-            #    GQ = "."
-            #    QUAL = "."
             #0-chr1|1-TRA_type|2-ref pos|3-chr2|4-alt pos|5-support read num|6-none|7-DR|8-GT|9-GL|10-GQ|11-QUAL|12-support read name|13-none|14-none(todo)|15-none|16-none|17-none
             candidate_single_SV.append([chr_1, 
                                         TRA_1, 
@@ -238,20 +204,6 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
                                         '',
                                         ''])
 
-            #if action:
-            #    import time
-            #    # time_start = time.time()
-            #    DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[1][0]/len(temp[1][2])), 
-            #                                int(temp[1][1]/len(temp[1][2])), chr_1, chr_2, set(temp[1][2]), 
-            #                                max_cluster_bias, gt_round)
-            #    # cost_time = time.time() - time_start
-            #    # print("BND", chr_1, chr_2, int(temp[1][0]/len(temp[1][2])), int(temp[1][1]/len(temp[1][2])), DR, DV, QUAL, "%.4f"%cost_time)
-            #else:
-            #    DR = '.'
-            #    GT = './.'
-            #    GL = '.,.,.'
-            #    GQ = "."
-            #    QUAL = "."
             candidate_single_SV.append([chr_1, 
                                         TRA_2, 
                                         str(int(temp[1][0]/len(temp[1][2]))), 
@@ -271,8 +223,6 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
                                         ''])
     else:
         if len(set(temp[0][2])) >= len(semi_tra_cluster)*overlap_size:
-            # print("%s\tTRA\t%d\t%s\t%d\t%d"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
-            # candidate_single_SV.append("%s\tTRA\t%d\t%s\t%d\t%d\n"%(chr_1, int(temp[0][0]/temp[0][2]), chr_2, int(temp[0][1]/temp[0][2]), len(read_tag)))
             BND_pos = "%s:%s"%(chr_2, int(temp[0][1]/len(temp[0][2])))
             if BND_type == 'A':
                 TRA = "N[%s["%(BND_pos)
@@ -285,20 +235,6 @@ def generate_semi_tra_cluster(semi_tra_cluster, chr_1, chr_2, read_count, overla
             else:
                 return
 
-            #if action:
-            #    import time
-            #    # time_start = time.time()
-            #    DV, DR, GT, GL, GQ, QUAL = call_gt(bam_path, int(temp[0][0]/len(temp[0][2])), 
-            #                                int(temp[0][1]/len(temp[0][2])), chr_1, chr_2, set(temp[0][2]), 
-            #                                max_cluster_bias, gt_round)
-            #    # cost_time = time.time() - time_start
-            #    # print("BND", chr_1, chr_2, int(temp[0][0]/len(temp[0][2])), int(temp[0][1]/len(temp[0][2])), DR, DV, QUAL, "%.4f"%cost_time)
-            #else:
-            #    DR = '.'
-            #    GT = './.'
-            #    GL = '.,.,.'
-            #    GQ = "."
-            #    QUAL = "."
             candidate_single_SV.append([chr_1, 
                                         TRA, 
                                         str(int(temp[0][0]/len(temp[0][2]))), 

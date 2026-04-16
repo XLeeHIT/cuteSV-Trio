@@ -88,8 +88,7 @@ def main(argv):
 
 USAGE="""\
 	Convert the typical SV callsets generated from cuteSVTrio to diploid based SV callsets.
-	Author: Tao Jiang
-	Email: tjiang@hit.edu.cn
+	Author: LiXin
 """
 
 def parseArgs(argv):

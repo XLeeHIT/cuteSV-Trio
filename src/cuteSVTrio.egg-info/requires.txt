@@ -5,5 +5,3 @@ Cigar
 numpy
 pyvcf3
 scikit-learn
-pyabpoa
-mappy

@@ -24,7 +24,6 @@ def msa_consensus_for_cluster(cluster_seqs, aligner=None):
 
     if aligner is None:
         aligner = pyabpoa.msa_aligner()
-    # 按长度排序以优化内部表现
     parts = sorted([(len(s), s, f'seq{i}') for i, s in enumerate(cluster_seqs)], reverse=True)
     _, seqs, names = zip(*parts)
     if not cluster_seqs:
@@ -57,7 +56,6 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
     chr_ls = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22"]
     if chr not in chr_ls :
         return (chr,candidate_single_SV_gt_fam_ls)
-    #logging.info(hap_range)
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
     family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
@@ -78,7 +76,6 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
     for i in range(len(candidate_single_SV_gt_fam_ls[0])-1) :
         if int(candidate_single_SV_gt_fam_ls[0][i+1][2]) - int(candidate_single_SV_gt_fam_ls[0][i][2]) < sv_extension_scope :
             if len(nearby_list) == 0 or (len(nearby_list) > 0 and nearby_list[-1][1] != -1) :
-                # 如果某个lcr中不涉及sv，并且设计的sv的数量小于等于4，就舍弃
                 if len(nearby_list) > 0 and max([abs(x) for x in nearby_list[-1][3]]) < 50 :
                     nearby_list.pop()
                 nearby_list.append([i,-1,[int(candidate_single_SV_gt_fam_ls[0][i][2])],[int(candidate_single_SV_gt_fam_ls[0][i][3])]])
@@ -96,10 +93,6 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
             nearby_list[-1][3].append(int(candidate_single_SV_gt_fam_ls[0][i][3]))
     if nearby_list[-1][1] == -1 :
         nearby_list[-1][1] = len(candidate_single_SV_gt_fam_ls[0])-1
-    #logging.info("%s/%s"%(chr,str(len(nearby_list))))
-    #logging.info([x[0:2]+[x[3]] for x in nearby_list])
-    #logging.info(nearby_list)
-    # 使用对应整个染色体sv
     ref_aligner = mp.Aligner(f"{path}/{chr}.fasta",preset="map-pb")  # load or build index
     if not ref_aligner: raise Exception("ERROR: failed to load/build index")
     if len(nearby_list) == 0 :
@@ -127,17 +120,9 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 revised_candidate_single_SV_gt_fam_ls[0] = revised_candidate_single_SV_gt_fam_ls[0] + candidate_single_SV_gt_fam_ls[0][near_sv[1]+1:]
                 revised_candidate_single_SV_gt_fam_ls[1] = revised_candidate_single_SV_gt_fam_ls[1] + candidate_single_SV_gt_fam_ls[1][near_sv[1]+1:]
                 revised_candidate_single_SV_gt_fam_ls[2] = revised_candidate_single_SV_gt_fam_ls[2] + candidate_single_SV_gt_fam_ls[2][near_sv[1]+1:]
-            
-            #if time.time() - start_time >= 3600 :
-            #    for old_sv in range(near_sv[0],near_sv[1]+1) :
-            #        revised_candidate_single_SV_gt_fam_ls[0].append(candidate_single_SV_gt_fam_ls[0][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
-            #    continue
 
             lcr_sta_pos = int(candidate_single_SV_gt_fam_ls[0][near_sv[0]][2])
             lcr_end_pos = int(candidate_single_SV_gt_fam_ls[0][near_sv[1]][2])+abs(int(candidate_single_SV_gt_fam_ls[0][near_sv[1]][3]))
-            # 使用对应染色体sv附近变异
             ref_seq = ref_aligner.seq(chr, max(0,lcr_sta_pos-5*read_extension_scope), lcr_end_pos+5*read_extension_scope)
             local_ref_aligner = mp.Aligner(seq=ref_seq, k=remap_merge_k, w=remap_minimizer_window, preset="map-pb")
             
@@ -183,54 +168,10 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                     revised_candidate_single_SV_gt_fam_ls[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
                     revised_candidate_single_SV_gt_fam_ls[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
                 continue
-            '''
-            if family_assembly_reads :
-                # 根据phasing确定的子代和父母本之间的对应关系，将父母本的read添加到子代的reads列表中
-                father_reads = father_bam.fetch(chr, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                for father_read in father_reads :
-                    father_read_name = "M1/2/"+father_read.query_name
-                    for i in range(near_sv[0],near_sv[1]+1) :
-                        if phased_sv_haplotype_father_inher[i][0] >= 0.5 :
-                            if father_read_name in phased_sv_haplotype_father_inher[i][6] or father_read_name in phased_sv_haplotype_father_inher[i][10] :
-                                if father_read_name not in child_hap1_names :
-                                    read_seq = capture_reads_within_lcr(father_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                                    if read_seq != "" :
-                                        child_hap1_names.append(father_read_name)
-                                        child_hap1_reads.append(read_seq)
-                        else :
-                            if father_read_name in phased_sv_haplotype_father_inher[i][8] or father_read_name in phased_sv_haplotype_father_inher[i][11] :
-                                if father_read_name not in child_hap1_names :
-                                    read_seq = capture_reads_within_lcr(father_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                                    if read_seq != "" :
-                                        child_hap1_names.append(father_read_name)
-                                        child_hap1_reads.append(read_seq)
-    
-                mother_reads = mother_bam.fetch(chr, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                for mother_read in mother_reads :
-                    mother_read_name = "M1/3/"+mother_read.query_name
-                    for i in range(near_sv[0],near_sv[1]+1) :
-                        if phased_sv_haplotype_mother_inher[i][0] >= 0.5 :
-                            if mother_read_name in phased_sv_haplotype_mother_inher[i][6] or mother_read_name in phased_sv_haplotype_mother_inher[i][10] :
-                                if mother_read_name not in child_hap2_names :
-                                    read_seq = capture_reads_within_lcr(mother_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                                    if read_seq != "" :
-                                        child_hap2_names.append(mother_read_name)
-                                        child_hap2_reads.append(read_seq)
-                        else :
-                            if mother_read_name in phased_sv_haplotype_mother_inher[i][8] or mother_read_name in phased_sv_haplotype_mother_inher[i][11] :
-                                if mother_read_name not in child_hap2_names :
-                                    read_seq = capture_reads_within_lcr(mother_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                                    if read_seq != "" :
-                                        child_hap2_names.append(mother_read_name)
-                                        child_hap2_reads.append(read_seq)
-            '''
-            # 由于纯和或者无变异，同时没有phasing的read cover信息，导致没有具体的支持read，将涉及的变异的read尽量均分给两个hap
             if len(child_hap1_reads) == len(child_hap2_reads) == 0 :
                 child_reads = child_bam.fetch(chr, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
                 for child_read in child_reads :
                     child_read_name = "M1/1/"+child_read.query_name
-                    #if log_flag :
-                    #    logging.info(child_read_name)
                     for i in range(near_sv[0],near_sv[1]+1) :
                         if child_read_name in candidate_single_SV_gt_fam_ls[0][i][12] or child_read_name in candidate_single_SV_gt_fam_ls[0][i][16] :
                             read_seq = capture_reads_within_lcr(child_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
@@ -257,14 +198,10 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
             
             consensus_hap1 = msa_consensus_for_cluster(child_hap1_reads)
             consensus_hap2 = msa_consensus_for_cluster(child_hap2_reads)
-            #logging.info(consensus_hap1)
-            #logging.info(consensus_hap2)
             if consensus_hap1 is not None :
                 consensus_hap1 = consensus_hap1[0]
             if consensus_hap2 is not None :
                 consensus_hap2 = consensus_hap2[0]
-            #logging.info(consensus_hap1)
-            #logging.info(consensus_hap2)
             if family_assembly_reads :
                 if consensus_hap1 is not None :
                     father_aligner = mp.Aligner(seq=consensus_hap1, k=remap_merge_k, w=remap_minimizer_window, preset="map-pb")
@@ -336,11 +273,6 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                             f.write(mother_hap1_reads[read_i]+"\n")
                             f.close()
 
-                #assembly_num_file = path+"/assembly.fq.results/num/"+chr+"_"+candidate_single_SV_gt_fam_ls[0][0][2]+"_"+candidate_single_SV_gt_fam_ls[0][-1][2]+".txt"
-                #with open(assembly_num_file, "w") as f:
-                #    f.write(str(len(child_hap1_reads))+"/"+str(len(child_hap2_reads))+"/"+str(fa_sim_num)+"/"+str(len(father_hap1_reads))+"/"+str(mo_sim_num)+"/"+str(len(mother_hap1_reads)))
-                #    f.close()
-
             hap1_svs = hap2_svs = None
             if consensus_hap1 is not None :
                 for hit in local_ref_aligner.map(seq=consensus_hap1): # traverse alignments
@@ -383,172 +315,51 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 if not homo_flag :
                     member_svs.append(h_2[:]+["1/0:0|1"])
             
-            #tmp_svs = [[] for x in family_member_ls]
-            #for old_sv in range(near_sv[0],near_sv[1]+1) :
-            #    tmp_svs[0].append(candidate_single_SV_gt_fam_ls[0][old_sv])
-            #    tmp_svs[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
-            #    tmp_svs[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
-            #logging.info("%s/%s/%s/%d/%d/%d/%d-%f"%(chr,tmp_svs[0][0][2],tmp_svs[0][-1][2],len(child_hap1_reads),len(child_hap2_reads),hap1_reads_len,hap2_reads_len,time.time()-start_time))
-            
-            #if log_flag :
-            #    logging.info(near_sv)
-            # 按照条件选择是否将LCR范围内的变异替换成局部组装变异，或者保留原变异
             if len(near_sv[2]) <= assembly_correction_threshold :
-
-                #revised_candidate_single_SV_gt_fam_ls[0] = revised_candidate_single_SV_gt_fam_ls[0] + tmp_svs[0]
-                #revised_candidate_single_SV_gt_fam_ls[1] = revised_candidate_single_SV_gt_fam_ls[1] + tmp_svs[1]
-                #revised_candidate_single_SV_gt_fam_ls[2] = revised_candidate_single_SV_gt_fam_ls[2] + tmp_svs[2]
-                ## 不再加入局部拼接的变异
-                #continue
-
                 tmp_svs = [[] for x in family_member_ls]
                 for old_sv in range(near_sv[0],near_sv[1]+1) :
                     tmp_svs[0].append(candidate_single_SV_gt_fam_ls[0][old_sv])
                     tmp_svs[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
                     tmp_svs[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
-                
-                # 超长的DEL合INS，可能会出现不同成员长度不匹配的情况
-                # Disable
-                #tmp_svs = make_extralong_sv_neat(chr, tmp_svs, member_svs, family_member_ls)
-
-                #for x in range(len(tmp_svs[0])) :
-                #    if int(tmp_svs[0][x][2]) == 811560 :
-                #        logging.info(tmp_svs[0][x])
 
                 # 5-minimap2错误的将邻接的两个sv的read比对到了一起，导致出现fp和fn
-                # 1号染色体上可行
                 if "5" in assembly_sets or assembly_correction_setting == "ALL" :
                     tmp_svs = correct_2svs_align_together(chr, tmp_svs, member_svs, family_member_ls)
 
-                # 使用assembly信息验证等位基因的正确性，将错误的等位基因消掉
-                # todo:尝试使用ass修正错误的等位基因gt
-                # 这段代码没有经过具体的case验证，需要进一步确定是否起到正向作用
-                # Disable
-                #tmp_svs = verify_allele_svs_byassembly(chr, tmp_svs, member_svs, family_member_ls)
-
-                #for x in range(len(tmp_svs[0])) :
-                #    if int(tmp_svs[0][x][2]) == 811560 :
-                #        logging.info(tmp_svs[0][x])
-
                 # 6-两个位置相近的杂合，minimap2的比对和cutesvTrio的聚类会是他们被错误的识别为纯和，需要按照ass的结果将两者分开
-                # 1号染色体上可行
                 if "6" in assembly_sets or assembly_correction_setting == "ALL" :
                     tmp_svs = split_error_homo_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_support_reads_list)
 
-                #for x in range(len(tmp_svs[0])) :
-                #    if int(tmp_svs[0][x][2]) == 811560 :
-                #        logging.info(tmp_svs[0][x])
-
-                # 6-类等位基因中，如果两个sv的长度都在50附近，就是用assembly做筛选
-                # 这个方法在1上不行，在22上可以
-                #if "6" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    if chr in ["21","22"] :
-                #        tmp_svs = screening_allele_boundary_len(chr, tmp_svs, member_svs, family_member_ls)
-
-                # 7-针对家庭纠错方法种后两类补充的sv，使用assembly重新验证其正确性
-                # 该方法可能需要结合父母本的assem修改，或者结合父母本的read
-                #if "7" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    if chr in ["21","22"] :
-                #        tmp_svs = revalidate_trio_correction(chr, tmp_svs, member_svs, family_member_ls, minimum_support_reads_list)
-
                 # 8-使用assembly验证denovo，尤其是第一类denovo的正确性
-                # 1号染色体上可行
                 if "8" in assembly_sets or assembly_correction_setting == "ALL" :
                     tmp_svs = revalidate_denovo(chr, tmp_svs, member_svs, family_member_ls, minimum_support_reads_list)
 
-                # 三重及以上等位基因中，如果assembly和原本都只支持的一个等位基因，但是不一致，那么修改为assembly支持的
-                # 9-三重及以上等位基因中，如果assembly不支持，但是原本支持一个，那去除该sv
-                # 这个方法在1上不行，在22上可以
-                #if "9" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    if chr in ["21","22"] :
-                #        tmp_svs = screening_threeup_allele(chr, tmp_svs, member_svs, family_member_ls)
-
-                # 10-因为minimap2的比对可能会产生比对的断裂，导致原本的长变异消失，出现两个错误的短变异
-                # Disable
-                #tmp_svs = correct_2svs_align_crack(chr, tmp_svs, member_svs, family_member_ls) 
-
-                # 过滤前后紧密连接在一起的两个变异，使用assembly重新验证他们的正确性
-                # Disable
-                #tmp_svs = screening_connected_svs(chr, tmp_svs, member_svs, family_member_ls)
-
                 # 11-通过assembly中位置和长度几乎完全相同的记录来补充sv
-                # 1号染色体上可行
                 if "11" in assembly_sets or assembly_correction_setting == "ALL" :
                     tmp_svs = supple_samesv_bybyassembly(chr, tmp_svs, member_svs, family_member_ls) 
                 
-                # 如果原检测结果中两个变异接近，并且长度几乎一致，而assembly只支持一个，两个sv的支持信号互斥，那么只保留assembly支持的
-                # Disable
-                #tmp_svs = screening_two_near_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_support_reads_list) 
-
-                # 12-按照ass的检测结果修正现有sv的pos
-                #if "12" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    if chr in ["21","22"] :
-                #        tmp_svs = refine_svs_pos(chr, tmp_svs, member_svs, family_member_ls)
-
-                # 如果assembly支持的sv是一个左右完全没有原本检测变异支持的sv，那么反向证明了其可能的正确性
-                # Disable
-                #tmp_svs = reverse_supple_byunsupport_sv(chr, tmp_svs, member_svs, family_member_ls) 
-
                 # 针对19号染色体进行针对CMRG的特异性删除
                 if "15" in assembly_sets or assembly_correction_setting == "ALL" :
                     if chr in ["19","chr19"] :
                         tmp_svs = correct_19_within_lcr(chr, tmp_svs, member_svs, family_member_ls)
-
-                # 针对长并整齐的信号进行针对CMRG的特异性补充
-                #if "15" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    tmp_svs = supple_long_neat_within_lcr(chr, tmp_svs, member_svs, family_member_ls)
-
+                
                 # 使用lcr中确定的单倍型分支结果，重新验证纯和变异的正确性
                 if "13" in assembly_sets or assembly_correction_setting == "ALL" :
                     tmp_svs = correct_homogt_within_lcr(chr, tmp_svs, member_svs, family_member_ls)
-
-                #if "13" in assembly_sets or assembly_correction_setting == "ALL" :
-                #    tmp_svs = correct_hetegt_within_lcr(chr, tmp_svs, member_svs, family_member_ls)
 
                 revised_candidate_single_SV_gt_fam_ls[0] = revised_candidate_single_SV_gt_fam_ls[0] + tmp_svs[0]
                 revised_candidate_single_SV_gt_fam_ls[1] = revised_candidate_single_SV_gt_fam_ls[1] + tmp_svs[1]
                 revised_candidate_single_SV_gt_fam_ls[2] = revised_candidate_single_SV_gt_fam_ls[2] + tmp_svs[2]
 
-                # 不再加入局部拼接的变异
                 continue
-            #logging.info("%s/%s/%s/%d/%d/%d/%d-%f"%(chr,tmp_svs[0][0][2],tmp_svs[0][-1][2],len(child_hap1_reads),len(child_hap2_reads),hap1_reads_len,hap2_reads_len,time.time()-start_time))
-            #if len(near_sv[2]) < 5 :
-            #    for old_sv in range(near_sv[0],near_sv[1]+1) :
-            #        revised_candidate_single_SV_gt_fam_ls[0].append(candidate_single_SV_gt_fam_ls[0][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
 
-            #for old_sv in range(near_sv[0],near_sv[1]+1) :
-            #    gl_str = candidate_single_SV_gt_fam_ls[0][old_sv][9].split(",")
-            #    #if abs(int(candidate_single_SV_gt_fam_ls[0][old_sv][3])) >= 500 or gl_str[8] in ["-1,-2,-3"] or float(candidate_single_SV_gt_fam_ls[0][old_sv][11]) >= 100:
-            #    if abs(int(candidate_single_SV_gt_fam_ls[0][old_sv][3])) >= 2000 :
-            #        revised_candidate_single_SV_gt_fam_ls[0].append(candidate_single_SV_gt_fam_ls[0][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[1].append(candidate_single_SV_gt_fam_ls[1][old_sv])
-            #        revised_candidate_single_SV_gt_fam_ls[2].append(candidate_single_SV_gt_fam_ls[2][old_sv])
             for new_sv in member_svs :
-                #new_sv[1] = new_sv[1]+max(0,lcr_sta_pos-5*read_extension_scope)
-                #same_sv_flag = False
-                #for j in range(max(0,len([revised_candidate_single_SV_gt_fam_ls[0]])-nearsv_maxnum-nearsv_minnum),len(revised_candidate_single_SV_gt_fam_ls[0])) :
-                #for j in range(max(0,len([revised_candidate_single_SV_gt_fam_ls[0]])-5),len(revised_candidate_single_SV_gt_fam_ls[0])) :
-                #    if new_sv[0] == revised_candidate_single_SV_gt_fam_ls[0][j][1] and abs(int(revised_candidate_single_SV_gt_fam_ls[0][j][2])-new_sv[1]) <= 10 and abs(int(revised_candidate_single_SV_gt_fam_ls[0][j][3])-new_sv[3]) <= 10 :
-                #        same_sv_flag = True
-                #        break
-                #if same_sv_flag :
-                #    continue
-                #0-chr|1-sv_type|2-pos|3-len|4-support read num|5-CIPOS|6-CILEN|7-DR|8-GT|9-GL|10-GQ|11-QUAL|12-support read name|13-read squence|14-sv len str|15-support read pos|16-not support read name|17-not support read pos
                 if new_sv[-1][4:7] == "1|1" :
                     gl_str = "100,100,0,1,1,0,0,0,-4"
                 elif new_sv[-1][4:7] == "0|1" :
                     gl_str = "100,0,100,0,1,0,0,0,-4"
                 elif new_sv[-1][4:7] == "1|0" :
                     gl_str = "100,0,100,1,0,0,0,0,-4"
-                #if abs(new_sv[3]) != len(new_sv[4]) :
-                #    logging.info(new_sv)
-                #    logging.info(len(new_sv[4]))
-                #if new_sv[0] == "DEL" :
-                #    sv_seq = ref_aligner.seq(chr, new_sv[1], new_sv[1]+abs(new_sv[3]))
-                #elif new_sv[0] == "INS" :
-                #    sv_seq = new_sv[4]
                 child_single_SV = [
                     chr,
                     new_sv[0],
@@ -569,31 +380,15 @@ def redetect_nearby_sv(path, chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                     "",
                     ""
                 ]
-                #if new_sv[1] == 29516097 :
-                #    logging.info(candidate_single_SV_gt_fam_ls[0][near_sv[0]:near_sv[1]+1])
-                #    logging.info(consensus_hap1)
-                #    logging.info(consensus_hap2)
-                #    for hit in ref_aligner.map(seq=consensus_hap1): # traverse alignments
-                #        print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                #        
-                #    for hit in ref_aligner.map(seq=consensus_hap2): # traverse alignments
-                #        print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
                         
                 revised_candidate_single_SV_gt_fam_ls[0].append(child_single_SV)
                 revised_candidate_single_SV_gt_fam_ls[1].append(child_single_SV)
                 revised_candidate_single_SV_gt_fam_ls[2].append(child_single_SV)
     
-        # 过滤列表中的所有纯和变异，随机分配纯和变异的所有read，重复多次，如果中间出现了一定次数的杂合结果，那么将其修改为杂合
-        #correct_homogt_allsv(chr, revised_candidate_single_SV_gt_fam_ls, child_bam, father_bam, mother_bam, ref_aligner, read_extension_scope, remap_merge_k, remap_minimizer_window)
         if assembly_correction_threshold != 0 :
             if "14" in assembly_sets or assembly_correction_setting == "ALL" :
                 revised_candidate_single_SV_gt_fam_ls = correct_homogt_allsv_support(path, chr, revised_candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, homo_range, child_bam, father_bam, mother_bam, ref_aligner, read_extension_scope, remap_merge_k, remap_minimizer_window, minimum_support_reads_list, family_assembly_reads, similarity_supplement_threshold, assembly_accelerate)
         
-        # 将第二类denovo，或者无中生有的纯和结果提取出来，重新验证一遍
-        #revised_candidate_single_SV_gt_fam_ls = correct_homogt_allsv_denovo(chr, revised_candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, child_bam, father_bam, mother_bam, ref_aligner, read_extension_scope, remap_merge_k, remap_minimizer_window, minimum_support_reads_list)
-        
-        #revised_candidate_single_SV_gt_fam_ls = correct_hetegt_allsv_denovo(chr, revised_candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, child_bam, father_bam, mother_bam, ref_aligner, read_extension_scope, remap_merge_k, remap_minimizer_window, minimum_support_reads_list)
-
     child_bam.close()
     father_bam.close()
     mother_bam.close()
@@ -607,9 +402,6 @@ def make_extralong_sv_neat(chr, tmp_svs, member_svs, family_member_ls) :
     new_svs = [[] for x in family_member_ls]
     n_s = 0
     while(True) :
-        #if log_flag :
-        #    logging.info(len(tmp_svs[0]))
-        #    logging.info(tmp_svs[0][n_s])
         if n_s > len(tmp_svs[0]) :
             break
         if n_s == len(tmp_svs[0]) - 1 :
@@ -619,11 +411,7 @@ def make_extralong_sv_neat(chr, tmp_svs, member_svs, family_member_ls) :
             break
         find_flag = -1
         if abs(int(tmp_svs[0][n_s][2])-int(tmp_svs[0][n_s+1][2])) <= 5 and abs(int(tmp_svs[0][n_s][3])) >= 30000 and abs(int(tmp_svs[0][n_s+1][3])) >= 30000 and abs(int(tmp_svs[0][n_s][3])-int(tmp_svs[0][n_s+1][3]))/min(int(tmp_svs[0][n_s][3]),int(tmp_svs[0][n_s+1][3])) > 0.25:
-            #if log_flag :
-            #    logging.info(tmp_svs[0][n_s][2])
             if tmp_svs[0][n_s][1] == tmp_svs[0][n_s+1][1] :
-                #if log_flag :
-                #    logging.info(tmp_svs[0][n_s][2])
                 for ass_sv in member_svs :
                     if tmp_svs[0][n_s][1] == tmp_svs[0][n_s+1][1] == ass_sv[0] and abs(ass_sv[3]) >= 30000:
                         if abs(ass_sv[1]-int(tmp_svs[0][n_s][2])) <= 5 or abs(ass_sv[1]-int(tmp_svs[0][n_s+1][2])) <= 5 :
@@ -671,49 +459,22 @@ def correct_2svs_align_together(chr, tmp_svs, member_svs, family_member_ls) :
                 continue
             if member_svs[ass_sv_i][0] == tmp_svs[0][n_s][1] :
                 if abs(member_svs[ass_sv_i][1]-int(tmp_svs[0][n_s][2])) <= 5 and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3]-member_svs[ass_sv_i+1][3]) <= 10 :
-                    #if tmp_svs[0][n_s][1] == "INS" and member_svs[ass_sv_i+1][2] - member_svs[ass_sv_i][2] > 5 :
-                    #    continue
-                    #if tmp_svs[0][n_s][1] == "DEL" and member_svs[ass_sv_i+1][2] - (member_svs[ass_sv_i][2]+abs(member_svs[ass_sv_i][3])) < -50 :
-                    #    continue
-                    #if 2037560 <= int(tmp_svs[0][n_s][2]) <= 2038560 :
-                    #    logging.info(tmp_svs[0][n_s])
-                    #    logging.info(member_svs[ass_sv_i])
                     if tmp_svs[0][n_s][gt_index][0:3] in ["0/1","1/0","1/1"] :
                         if n_s > 0 and abs(member_svs[ass_sv_i][1]-int(tmp_svs[0][n_s-1][2])) <= 5 and abs(int(tmp_svs[0][n_s-1][3])-member_svs[ass_sv_i][3]) <= 10 and tmp_svs[0][n_s-1][gl_index].split(",")[-1] != "-4":
                             for x in range(len(tmp_svs)) :
                                 new_svs[x].pop()
-                            #if 2037560 <= int(tmp_svs[0][n_s][2]) <= 2038560 :
-                            #    logging.info(tmp_svs[0][n_s])
-                            #    logging.info(member_svs[ass_sv_i])
                         if n_s < len(tmp_svs[0])-1 and abs(member_svs[ass_sv_i+1][1]-int(tmp_svs[0][n_s+1][2])) <= 5 and abs(int(tmp_svs[0][n_s+1][3])-member_svs[ass_sv_i+1][3]) <= 10 and tmp_svs[0][n_s+1][gl_index].split(",")[-1] != "-4":
                             n_s += 2
                         else :
                             n_s += 1
-                        # 按照assembly得到的gt一致性非常低，大多数都为1|1，但是truth中都为0|1，所以暂时强制设为0|1，需要进一步确定
-                        #if member_svs[ass_sv_i][-1][4:7] == "1|1" :
-                        #    gl_str = "100,100,0,1,1,0,0,0,-5"
-                        #elif member_svs[ass_sv_i][-1][4:7] == "0|1" :
-                        #    gl_str = "100,0,100,0,1,0,0,0,-5"
-                        #elif member_svs[ass_sv_i][-1][4:7] == "1|0" :
-                        #    gl_str = "100,0,100,1,0,0,0,0,-5"
                         gl_str = "100,0,100,1,0,0,0,0,-5"
                         first_child_single_SV = [chr,member_svs[ass_sv_i][0],str(member_svs[ass_sv_i][1]),str(member_svs[ass_sv_i][3]),"0","0","0","0","1/0:1|0",gl_str,"996","255","",member_svs[ass_sv_i][4],"","","",""]
                         for x in range(len(new_svs)) :
                             new_svs[x].append(first_child_single_SV)
-                        #if 2037560 <= int(tmp_svs[0][n_s][2]) <= 2038560 :
-                        #    logging.info(new_svs[0][-1])
-                        #if member_svs[ass_sv_i+1][-1][4:7] == "1|1" :
-                        #    gl_str = "100,100,0,1,1,0,0,0,-5"
-                        #elif member_svs[ass_sv_i+1][-1][4:7] == "0|1" :
-                        #    gl_str = "100,0,100,0,1,0,0,0,-5"
-                        #elif member_svs[ass_sv_i+1][-1][4:7] == "1|0" :
-                        #    gl_str = "100,0,100,1,0,0,0,0,-5"
                         gl_str = "100,0,100,1,0,0,0,0,-5"
                         second_child_single_SV = [chr,member_svs[ass_sv_i+1][0],str(member_svs[ass_sv_i+1][1]),str(member_svs[ass_sv_i+1][3]),"0","0","0","0","1/0:1|0",gl_str,"996","255","",member_svs[ass_sv_i+1][4],"","","",""]
                         for x in range(len(new_svs)) :
                             new_svs[x].append(second_child_single_SV)
-                        #if 2037560 <= int(tmp_svs[0][n_s][2]) <= 2038560 :
-                        #    logging.info(new_svs[0][-1])
                         find_flag = True
                         break
         if find_flag == False :
@@ -766,15 +527,11 @@ def correct_2svs_align_crack(chr, tmp_svs, member_svs, family_member_ls) :
                     break
     return tmp_svs
 
-# 使用assembly信息验证等位基因的正确性，将错误的等位基因消掉
-# todo:尝试使用ass修正错误的等位基因gt
-# 这段代码没有经过具体的case验证，需要进一步确定是否起到正向作用
+
 def verify_allele_svs_byassembly(chr, tmp_svs, member_svs, family_member_ls) :
     new_svs = [[] for x in family_member_ls]
     n_s = 0
     while(True) :
-        #logging.info("%s/%s"%(str(n_s),str(len(tmp_svs[0])-1)))
-        #logging.info()
         if n_s == len(tmp_svs[0])-1 :
             new_svs[0].append(tmp_svs[0][n_s])
             new_svs[1].append(tmp_svs[1][n_s])
@@ -806,13 +563,11 @@ def verify_allele_svs_byassembly(chr, tmp_svs, member_svs, family_member_ls) :
                 else :
                     break
             n_s = n_s + allele_range_len
-            # 不是等位基因
             if len(local_svs[0]) != 2 :
                 new_svs[0] = new_svs[0] + tmp_svs[0][n_s-allele_range_len:n_s]
                 new_svs[1] = new_svs[1] + tmp_svs[1][n_s-allele_range_len:n_s]
                 new_svs[2] = new_svs[2] + tmp_svs[2][n_s-allele_range_len:n_s]
                 continue
-            # 等位基因长度接近或者其中一个长度较低时，ass会将两个变异和为一个
             if abs(int(local_svs[0][0][3])) < 100 or abs(int(local_svs[0][1][3])) < 100 or abs(int(local_svs[0][0][3])-int(local_svs[0][1][3]))/max(abs(int(local_svs[0][0][3])),abs(int(local_svs[0][1][3]))) < 0.3 :
                 new_svs[0] = new_svs[0] + tmp_svs[0][n_s-allele_range_len:n_s]
                 new_svs[1] = new_svs[1] + tmp_svs[1][n_s-allele_range_len:n_s]
@@ -880,23 +635,17 @@ def split_error_homo_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_sup
             for ass_sv_i in range(len(member_svs)-1) :
                 if abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]) <= 50 and abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i+1][1]) <= 50 and tmp_svs[0][n_s][1] == member_svs[ass_sv_i][0] == member_svs[ass_sv_i+1][0]:
                     if (member_svs[ass_sv_i][-1][4:7] == "0|1" and member_svs[ass_sv_i+1][-1][4:7] == "1|0") or (member_svs[ass_sv_i][-1][4:7] == "1|0" and member_svs[ass_sv_i+1][-1][4:7] == "0|1") :
-                        #logging.info(tmp_svs[0][n_s])
                         if abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3])/max(abs(int(tmp_svs[0][n_s][3])),abs(member_svs[ass_sv_i][3])) < 0.3 and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i+1][3])/max(abs(int(tmp_svs[0][n_s][3])),abs(member_svs[ass_sv_i+1][3])) < 0.3 :
                             ass_pos_1 = member_svs[ass_sv_i][1]
                             ass_pos_2 = member_svs[ass_sv_i+1][1]
                             ass_num_1 = 0
                             ass_num_2 = 0
-                            #logging.info(tmp_svs[0][n_s])
                             for read_p in tmp_svs[0][n_s][15].split(",") :
                                 if abs(int(read_p)-ass_pos_1) <= 1 :
                                     ass_num_1 += 1
                                 if abs(int(read_p)-ass_pos_2) <= 1 :
                                     ass_num_2 += 1
-                            #logging.info(tmp_svs[0][n_s][15].split(","))
-                            #logging.info(ass_num_1)
-                            #logging.info(ass_num_2)
                             if ass_num_1 >= minimum_support_reads_list[0] and ass_num_2 >= minimum_support_reads_list[0] :
-                                #logging.info(tmp_svs[0][n_s])
                                 find_flag = 1
                                 if member_svs[ass_sv_i][-1][4:7] == "0|1" :
                                     gl_str = "100,0,100,0,1,0,0,0,-6"
@@ -935,22 +684,12 @@ def split_error_homo_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_sup
 # 类等位基因中，如果两个sv的长度都在50附近，就是用assembly做筛选
 def screening_allele_boundary_len(chr, tmp_svs, member_svs, family_member_ls) :
     n_s = 0
-    #logging.info(tmp_svs)
     while(True) :
         if n_s >= len(tmp_svs[0])-1 :
             break
-        #if tmp_svs[0][n_s][gl_index].split(",")[-1] in ["-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14"] :
-        #    n_s += 1
-        #    continue
         if abs(int(tmp_svs[0][n_s][2])-int(tmp_svs[0][n_s+1][2])) <= 1 :
-            #if tmp_svs[0][n_s+1][gl_index].split(",")[-1] in ["-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14"] :
-            #    n_s += 1
-            #    continue
             if abs(int(tmp_svs[0][n_s][3])) <= 55 and abs(int(tmp_svs[0][n_s+1][3])) <= 55 :
-                #logging.info(tmp_svs[0][n_s])
-                #logging.info(tmp_svs[0][n_s+1])
                 if int(tmp_svs[0][n_s][gt_index][0]) + int(tmp_svs[0][n_s][gt_index][2]) > 0 :
-                    #logging.info(tmp_svs[0][n_s])
                     find_flag = -1
                     for ass_sv_i in range(len(member_svs)) :
                         if tmp_svs[0][n_s][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]) <= 1 and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3]) <= 5 :
@@ -961,7 +700,6 @@ def screening_allele_boundary_len(chr, tmp_svs, member_svs, family_member_ls) :
                         tmp_svs[0][n_s][gt_index] = "0/0:0|0"
                         tmp_svs[0][n_s][gl_index] = "0,100,100,0,0,0,0,0,-6"
                 if int(tmp_svs[0][n_s+1][gt_index][0]) + int(tmp_svs[0][n_s+1][gt_index][2]) > 0 :
-                    #logging.info(tmp_svs[0][n_s+1])
                     find_flag = -1
                     for ass_sv_i in range(len(member_svs)) :
                         if tmp_svs[0][n_s+1][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s+1][2])-member_svs[ass_sv_i][1]) <= 1 and abs(int(tmp_svs[0][n_s+1][3])-member_svs[ass_sv_i][3]) <= 5 :
@@ -980,7 +718,6 @@ def screening_allele_boundary_len(chr, tmp_svs, member_svs, family_member_ls) :
 def revalidate_trio_correction(chr, tmp_svs, member_svs, family_member_ls, minimum_support_reads_list) :
     for n_s in range(len(tmp_svs[0])) : 
         gl_split = tmp_svs[0][n_s][gl_index].split(",")
-        # 175 may need to change
         if gl_split[8] in ["-3"] and int(float(gl_split[7])) <= minimum_support_reads_list[0] and abs(int(tmp_svs[0][n_s][3])) <= 175 :
             find_flag = -1
             for ass_sv_i in range(len(member_svs)) :
@@ -999,10 +736,8 @@ def revalidate_denovo(chr, tmp_svs, member_svs, family_member_ls, minimum_suppor
         if tmp_svs[0][n_s][gl_index].split(",")[-1] in ["-4,-5,-6,-7,-8,-9,-10,-11,-12,-13,-14"] :
             continue
         family_gt_ls = []
-        #family_gl_ls = []
         for j in range(len(tmp_svs)) :
             family_gt_ls.append([s for s in tmp_svs[j][n_s][gt_index][0:3]])
-            #family_gl_ls.append([float(s) for s in tmp_svs[j][n_s][gl_index].split(",")[5:8]])
         if len(family_gt_ls) == 2 :
             if int(family_gt_ls[0][0]) + int(family_gt_ls[0][2]) in [0] :
                 continue
@@ -1039,7 +774,6 @@ def revalidate_denovo(chr, tmp_svs, member_svs, family_member_ls, minimum_suppor
 def screening_threeup_allele(chr, tmp_svs, member_svs, family_member_ls) :
     n_s = 0
     while(True) :
-        #logging.info(tmp_svs[0][n_s])
         if n_s >= len(tmp_svs[0])-1 :
             break
         if abs(int(tmp_svs[0][n_s][2])-int(tmp_svs[0][n_s+1][2])) <= 1 :
@@ -1063,16 +797,12 @@ def screening_threeup_allele(chr, tmp_svs, member_svs, family_member_ls) :
             if sv_num < 3 :
                 n_s += up_range
                 continue
-            #for i in range(up_range) :
-            #    logging.info(tmp_svs[0][n_s+i])
             sv_record_ls = [0 for x in threeup_ls]
             ass_record_ls = [0 for x in threeup_ls]
             ass_sv_index = 0
             for i in range(up_range) :
                 if tmp_svs[0][n_s+i][gt_index][0:3] in ["0/1","1/0","1/1"] and abs(int(tmp_svs[0][n_s+i][3])) >= 50:
                     sv_record_ls[i] = 1
-            #if int(tmp_svs[0][n_s][2]) == 25808729 :
-            #    logging.info(tmp_svs[0][n_s:n_s+up_range])
             if sum(sv_record_ls) not in [0, 1] :
                 n_s += up_range
                 continue
@@ -1081,9 +811,7 @@ def screening_threeup_allele(chr, tmp_svs, member_svs, family_member_ls) :
             for i in range(up_range) :
                 for ass_sv_i in range(len(member_svs)) :
                     if tmp_svs[0][n_s+i][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s+i][2])-member_svs[ass_sv_i][1]) <= 1 and abs(int(tmp_svs[0][n_s+i][3])-member_svs[ass_sv_i][3]) <= 5 and abs(member_svs[ass_sv_i][3]) >= 50:
-                        #ass_record_ls[i] = 1
                         ass_sv_ls.append(ass_sv_i)
-                        #ass_sv_index = n_s+i
                         is_find = 1
                         break
             if sum(sv_record_ls) == 1 and (len(set(ass_sv_ls)) == 0 or is_find == 0):
@@ -1100,10 +828,6 @@ def screening_threeup_allele(chr, tmp_svs, member_svs, family_member_ls) :
                             ass_sv_index = i
                             len_dis = abs(int(tmp_svs[0][n_s+i][3])-member_svs[ass_sv_i][3])
                 ass_record_ls[ass_sv_index] = 1
-                #if int(tmp_svs[0][n_s][2]) == 25808729 :
-                #    logging.info(tmp_svs[0][n_s:n_s+up_range])
-                #    logging.info(sv_record_ls)
-                #    logging.info(ass_record_ls)
                 if sum(sv_record_ls) == 1 :
                     if sv_record_ls.index(1) != ass_record_ls.index(1) :
                         tmp_svs[0][n_s+sv_record_ls.index(1)][qual_index] = "0"
@@ -1165,9 +889,6 @@ def screening_connected_svs(chr, tmp_svs, member_svs, family_member_ls) :
 def supple_samesv_bybyassembly(chr, tmp_svs, member_svs, family_member_ls) :
     for n_s in range(len(tmp_svs[0])) :
         for ass_sv_i in range(len(member_svs)) :
-            #if int(tmp_svs[0][n_s][2]) == 45049091 :
-            #    logging.info(tmp_svs[0][n_s])
-            #    logging.info(member_svs[ass_sv_i])
             if abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]) <= 0 and tmp_svs[0][n_s][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3]) <= 1 and abs(int(tmp_svs[0][n_s][3])) > 200 :
                 if tmp_svs[0][n_s][gt_index][0:3] != "0/0" or tmp_svs[1][n_s][gt_index][0:3] != "0/0" or tmp_svs[2][n_s][gt_index][0:3] != "0/0" or abs(int(tmp_svs[0][n_s][3])) >= 250 :
                     if tmp_svs[0][n_s][gt_index][0:3] == "0/0" and member_svs[ass_sv_i][-1][0:3] != "0/0" :
@@ -1212,8 +933,6 @@ def screening_two_near_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_s
             if tmp_svs[0][n_s][gt_index][0:3] == "0/0" or tmp_svs[0][n_j][gt_index][0:3] == "0/0" :
                 continue
             if int(tmp_svs[0][n_s][2]) - int(tmp_svs[0][n_j][2]) <= 100 and abs(int(tmp_svs[0][n_s][3])-int(tmp_svs[0][n_j][3])) <= 5 :
-                #if int(tmp_svs[0][n_s][2]) == 2939006 or int(tmp_svs[0][n_j][2]) == 2939006 :
-                #    logging.info("1%s/%s/%s"%(str(tmp_svs[0][n_s]),str(tmp_svs[1][n_s]),str(tmp_svs[2][n_s])))
                 find_first_index = find_second_index = -1
                 for ass_sv_i in range(len(member_svs)) :
                     if tmp_svs[0][n_s][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]) <= 5 and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3]) <= 5 and ass_sv_i != find_second_index:
@@ -1222,20 +941,8 @@ def screening_two_near_svs(chr, tmp_svs, member_svs, family_member_ls, minimum_s
                         find_second_index = ass_sv_i
                 if (find_first_index != -1 and find_second_index != -1) or (find_first_index == -1 and find_second_index == -1) :
                     continue
-                #if int(tmp_svs[0][n_s][2]) == 2939006 and int(tmp_svs[0][n_s][3]) == 105:
-                #    logging.info(find_first_index)
-                #    logging.info(find_second_index)
-                #    logging.info("1%s/%s/%s"%(str(tmp_svs[0][n_s]),str(tmp_svs[1][n_s]),str(tmp_svs[2][n_s])))
-                #    logging.info("1%s/%s/%s"%(str(tmp_svs[0][n_j]),str(tmp_svs[1][n_j]),str(tmp_svs[2][n_j])))
-                #    logging.info(tmp_svs[0][n_s][12].split(","))
-                #    logging.info(tmp_svs[0][n_j][12].split(","))
-                #    logging.info(list(set(tmp_svs[0][n_s][12].split(",")) & set(tmp_svs[0][n_j][12].split(","))))
                 if len(list(set(tmp_svs[0][n_s][12].split(",")) & set(tmp_svs[0][n_j][12].split(",")))) >= minimum_support_reads_list[0] :
                     continue
-                #if int(tmp_svs[0][n_s][2]) == 2939006 or int(tmp_svs[0][n_j][2]) == 2939006 :
-                #    logging.info("1%s/%s/%s"%(str(tmp_svs[0][n_s]),str(tmp_svs[1][n_s]),str(tmp_svs[2][n_s])))
-                #    logging.info(find_first_index)
-                #    logging.info(find_second_index)
                 if find_first_index == -1 :
                     tmp_svs[0][n_s][qual_index] = "0"
                     tmp_svs[0][n_s][gt_index] = "0/0:0|0"
@@ -1295,9 +1002,6 @@ def correct_19_within_lcr(chr, tmp_svs, member_svs, family_member_ls) :
 # 针对长并整齐的信号进行针对CMRG的特异性补充
 def supple_long_neat_within_lcr(chr, tmp_svs, member_svs, family_member_ls) :
     for n_s in range(len(tmp_svs[0])) :
-        #if int(tmp_svs[0][n_s][2]) >= 133955022 and int(tmp_svs[0][n_s][2]) <= 133955022 :
-        #    logging.info("%s/%s/%s"%(str(tmp_svs[0][n_s]),str(tmp_svs[1][n_s]),str(tmp_svs[2][n_s])))
-        #    logging.info(member_svs)
         if tmp_svs[0][n_s][gl_index].split(",")[-1] in ["-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14","-15"] :
             pass
         if tmp_svs[0][n_s][gt_index][0:3] != "0/0" :
@@ -1327,8 +1031,6 @@ def supple_long_neat_within_lcr(chr, tmp_svs, member_svs, family_member_ls) :
                     gl_str = "100,0,100,1,0,0,0,0,-15"
                 tmp_svs[0][n_s][gl_index] = gl_str
 
-        #if int(tmp_svs[0][n_s][2]) >= 133955022 and int(tmp_svs[0][n_s][2]) <= 133955022 :
-        #    logging.info("%s/%s/%s"%(str(tmp_svs[0][n_s]),str(tmp_svs[1][n_s]),str(tmp_svs[2][n_s])))
     return tmp_svs
 
 # 过滤列表中的所有纯和变异，随机分配纯和变异的所有read，重复多次，如果中间出现了一定次数的杂合结果，那么将其修改为杂合
@@ -1360,18 +1062,12 @@ def correct_homogt_allsv_random(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
                 hap1_svs = hap2_svs = None
                 if consensus_hap1 is not None :
                     for hit in local_ref_aligner.map(seq=consensus_hap1): # traverse alignments
-                        #if log_flag:
-                        #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                        #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                         if not hit.is_primary :
                             continue
                         hap1_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap1, ref_aligner)
                         break
                 if consensus_hap2 is not None :
                     for hit in local_ref_aligner.map(seq=consensus_hap2): # traverse alignments
-                        #if log_flag:
-                        #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                        #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                         if not hit.is_primary :
                             continue
                         hap2_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap2, ref_aligner)
@@ -1396,25 +1092,11 @@ def correct_homogt_allsv_random(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
                             break
                     if not homo_flag :
                         member_svs.append(h_2[:]+["1/0:0|1"])
-                #if int(tmp_svs[0][n_s][2]) == 17850265 :
-                #    logging.info("%s/%s"%(str(x),str(member_svs)))
                 for ass_sv_i in range(len(member_svs)) :
-                    #if int(tmp_svs[0][n_s][2]) == 17850265 :
-                    #    logging.info(tmp_svs[0][n_s][1])
-                    #    logging.info(member_svs[ass_sv_i][0])
-                    #    logging.info(abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]))
-                    #    logging.info(abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3]))
-                    #    logging.info(max(abs(int(tmp_svs[0][n_s][3])),abs(member_svs[ass_sv_i][3])))
                     if tmp_svs[0][n_s][1] == member_svs[ass_sv_i][0] and abs(int(tmp_svs[0][n_s][2])-member_svs[ass_sv_i][1]) <= 10 and abs(int(tmp_svs[0][n_s][3])-member_svs[ass_sv_i][3])/max(abs(int(tmp_svs[0][n_s][3])),abs(member_svs[ass_sv_i][3])) <= 0.2 :
-                        #logging.info(x)
                         if member_svs[ass_sv_i][-1][0:3] in ["0/1","1/0"] :
-                            #logging.info(x)
                             hete_gt_ls.append(member_svs[ass_sv_i][-1])
-                            #tmp_svs[0][n_s][gt_index] = ember_svs[ass_sv_i][-1] 
                             break
-            #if int(tmp_svs[0][n_s][2]) == 17850265 :
-            #    logging.info("%s/%s"%(str(x),str(member_svs)))
-            #    logging.info(hete_gt_ls)
             if len(hete_gt_ls) >= 1 :
                 tmp_svs[0][n_s][gt_index] = hete_gt_ls[0]
                 if hete_gt_ls[0][4:7] == "0|1" :
@@ -1434,12 +1116,6 @@ def correct_homogt_allsv_support(path, chr, tmp_svs, fa_hap_ls, mo_hap_ls, homo_
         if n_s < homo_range[0] or n_s > homo_range[1] :
             continue
         if tmp_svs[0][n_s][gt_index][0:3] == "1/1" and abs(int(tmp_svs[0][n_s][3])) >= 50 :
-            #if tmp_svs[0][n_s][gl_index].split(",")[-1] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12"] :
-            #    continue
-            #if tmp_svs[0][n_s][1] == "DEL" and int(float(tmp_svs[0][n_s][gl_index].split(",")[6])) < floor(minimum_support_reads_list[0]/2):
-            #    continue
-            #if tmp_svs[0][n_s][1] == "INS" and int(tmp_svs[0][n_s][3]) <= 300:
-            #    continue
             lcr_sta_pos = int(tmp_svs[0][n_s][2])
             lcr_end_pos = int(tmp_svs[0][n_s][2])+abs(int(tmp_svs[0][n_s][3]))
             ref_seq = ref_aligner.seq(chr, max(0,lcr_sta_pos-5*read_extension_scope), lcr_end_pos+5*read_extension_scope)
@@ -1478,89 +1154,15 @@ def correct_homogt_allsv_support(path, chr, tmp_svs, fa_hap_ls, mo_hap_ls, homo_
                 consensus_hap1 = consensus_hap1[0]
             if consensus_hap2 is not None :
                 consensus_hap2 = consensus_hap2[0]
-            '''
-            if False :
-                if consensus_hap1 is not None :
-                    father_aligner = mp.Aligner(seq=consensus_hap1, k=remap_merge_k, w=remap_minimizer_window, preset="map-pb")
-                if consensus_hap2 is not None :
-                    mother_aligner = mp.Aligner(seq=consensus_hap2, k=remap_merge_k, w=remap_minimizer_window, preset="map-pb")
-                assembly_fa_file = path+"/assembly.fq.results/father/"+chr+"_"+str(lcr_sta_pos)+"_"+str(lcr_end_pos)+".fq"
-                assembly_mo_file = path+"/assembly.fq.results/mother/"+chr+"_"+str(lcr_sta_pos)+"_"+str(lcr_end_pos)+".fq"
-                father_hap1_names = []
-                father_hap1_reads = []
-                father_reads = father_bam.fetch(chr, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                for father_read in father_reads :
-                    father_read_name = "M1/2/"+father_read.query_name
-                    if father_read_name not in father_hap1_names :
-                        read_seq = capture_reads_within_lcr(father_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                        if read_seq != "" :
-                            father_hap1_names.append(father_read_name)
-                            father_hap1_reads.append(read_seq)
-                for read_i in range(len(father_hap1_names)) :
-                    is_match_flag = False
-                    if consensus_hap1 is not None :
-                        for hit in father_aligner.map(seq=father_hap1_reads[read_i]):
-                            if hit.is_primary :
-                                if hit.NM/len(father_hap1_reads[read_i]) < similarity_supplement_threshold :
-                                    is_match_flag = True
-                                break
-                    if consensus_hap2 is not None :
-                        for hit in mother_aligner.map(seq=father_hap1_reads[read_i]):
-                            if hit.is_primary :
-                                if hit.NM/len(father_hap1_reads[read_i]) < similarity_supplement_threshold :
-                                    is_match_flag = True
-                                break
-                    if is_match_flag :
-                        with open(assembly_fa_file, "a") as f:
-                            f.write(">"+father_hap1_names[read_i][5:]+"\n")
-                            f.write(father_hap1_reads[read_i]+"\n")
-                            f.close()
-                
-                mother_hap1_names = []
-                mother_hap1_reads = []
-                mother_reads = mother_bam.fetch(chr, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                for mother_read in mother_reads :
-                    mother_read_name = "M1/3/"+mother_read.query_name
-                    if mother_read_name not in mother_hap1_names :
-                        read_seq = capture_reads_within_lcr(mother_read, lcr_sta_pos-read_extension_scope, lcr_end_pos+read_extension_scope)
-                        if read_seq != "" :
-                            mother_hap1_names.append(mother_read_name)
-                            mother_hap1_reads.append(read_seq)
-                for read_i in range(len(mother_hap1_names)) :
-                    is_match_flag = False
-                    if consensus_hap1 is not None :
-                        for hit in father_aligner.map(seq=mother_hap1_reads[read_i]):
-                            if hit.is_primary :
-                                if hit.NM/len(mother_hap1_reads[read_i]) < similarity_supplement_threshold :
-                                    is_match_flag = True
-                                break
-                    if consensus_hap2 is not None :
-                        for hit in mother_aligner.map(seq=mother_hap1_reads[read_i]):
-                            if hit.is_primary :
-                                if hit.NM/len(mother_hap1_reads[read_i]) < similarity_supplement_threshold :
-                                    is_match_flag = True
-                                break
-                    if is_match_flag :
-                        with open(assembly_mo_file, "a") as f:
-                            f.write(">"+mother_hap1_names[read_i][5:]+"\n")
-                            f.write(mother_hap1_reads[read_i]+"\n")
-                            f.close()
-            '''
             hap1_svs = hap2_svs = None
             if consensus_hap1 is not None :
                 for hit in local_ref_aligner.map(seq=consensus_hap1): # traverse alignments
-                    #if log_flag:
-                    #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                    #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                     if not hit.is_primary :
                         continue
                     hap1_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap1, ref_aligner)
                     break
             if consensus_hap2 is not None :
                 for hit in local_ref_aligner.map(seq=consensus_hap2): # traverse alignments
-                    #if log_flag:
-                    #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                    #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                     if not hit.is_primary :
                         continue
                     hap2_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap2, ref_aligner)
@@ -1644,18 +1246,12 @@ def correct_homogt_allsv_denovo(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
             hap1_svs = hap2_svs = None
             if consensus_hap1 is not None :
                 for hit in local_ref_aligner.map(seq=consensus_hap1): # traverse alignments
-                    #if log_flag:
-                    #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                    #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                     if not hit.is_primary :
                         continue
                     hap1_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap1, ref_aligner)
                     break
             if consensus_hap2 is not None :
                 for hit in local_ref_aligner.map(seq=consensus_hap2): # traverse alignments
-                    #if log_flag:
-                    #    print("{}\t{}\t{}\t{}".format(hit.ctg, hit.r_st, hit.r_en, hit.cigar_str))
-                    #if not hit.is_primary or abs(hit.r_st - (min(near_sv[2])-max(0,lcr_sta_pos-5*read_extension_scope))) > sv_extension_scope :
                     if not hit.is_primary :
                         continue
                     hap2_svs = sv_from_cigar(chr, hit.cigar_str, hit.r_st, 10, max(0,lcr_sta_pos-5*read_extension_scope), consensus_hap2, ref_aligner)
@@ -1710,85 +1306,52 @@ def correct_hetegt_allsv_denovo(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
 
 
 def split_reference_chromosomes(temporary_dir, reference) :
-    # 打开原始FASTA文件
     with open(reference, "r") as infile:
-        # 使用 SeqIO 解析FASTA文件
         records = SeqIO.parse(infile, "fasta")
 
-        # 创建一个字典来存储每个染色体的序列
         chromosomes = {}
 
-        # 遍历每个记录，将其按照染色体名字进行分类
         for record in records:
-            chrom_name = record.id  # 获取染色体的名字
+            chrom_name = record.id
             if chrom_name not in chromosomes:
                 chromosomes[chrom_name] = []
             chromosomes[chrom_name].append(record)
 
-        # 输出每个染色体的序列到单独的文件
         for chrom_name, chrom_records in chromosomes.items():
-            output_file = f"{temporary_dir}/{chrom_name}.fasta"  # 文件名设为染色体名
+            output_file = f"{temporary_dir}/{chrom_name}.fasta"
             with open(output_file, "w") as outfile:
                 SeqIO.write(chrom_records, outfile, "fasta")
-            #print(f"染色体 {chrom_name} 已保存为 {output_file}")
 
 def sv_from_cigar(chr, cigar_str, ref_start, sv_min_size, origin_ref_start, sequence, reference):
-    """
-    根据一条 CIGAR 字符串，提取其中的插入/缺失等结构变异。
-    
-    参数
-    ----
-    cigar_str : str
-        例如 "10M5I20M3D15M"
-    ref_start : int
-        这条比对在参考基因组上的起始坐标（0-based, SAM 中的 POS-1）
-    sv_min_size : int
-        多长的 I/D 才认为是结构变异（例如长读段里常用 >=50bp）
-
-    返回
-    ----
-    sv_list : list[dict]
-        每个元素类似：
-        - INS: {"type": "INS", "pos": ref_pos, "size": length}
-        - DEL: {"type": "DEL", "start": ref_pos, "end": ref_pos+length, "size": length}
-    """
     c = Cigar(cigar_str)
     svs = []
 
-    ref_pos = ref_start   # 当前参考坐标
-    read_pos = 0          # 当前 read 坐标（用来做更复杂事件时会用到）
+    ref_pos = ref_start   
+    read_pos = 0          
 
     for length, op in c.items():
         if op in ("M", "=", "X", "N"):
-            # 匹配 / mismatch：参考和 read 都前进
             ref_pos += length
             read_pos += length
 
         elif op == "I":
-            # 插入：只 read 前进
-            # type,start,end,size,seq
             if length >= sv_min_size:
                 svs.append([
                     "INS", origin_ref_start + ref_pos, origin_ref_start + ref_pos + 1, length, sequence[read_pos:read_pos+length]
-                    #"INS", ref_pos, ref_pos + 1, length, ""
                 ])
             read_pos += length
 
         elif op == "D":
-            # 缺失/大片段跳过：只参考前进
             if length >= sv_min_size:
                 svs.append([
                     "DEL", origin_ref_start + ref_pos, origin_ref_start + ref_pos + length, -1*length, reference.seq(chr, origin_ref_start + ref_pos, origin_ref_start + ref_pos + length)
-                    #"DEL", ref_pos, ref_pos + length, -1*length, ""
                 ])
             ref_pos += length
 
         elif op in ("S", "H"):
-            # 剪切：只 read 前进，常见于 read 端，通常不当作 SV
             read_pos += length
 
         elif op == "P":
-            # padding，一般忽略
             pass
 
         else:
@@ -1799,7 +1362,6 @@ def sv_from_cigar(chr, cigar_str, ref_start, sv_min_size, origin_ref_start, sequ
 # 按照同类sv的位置和长度的临近关系，去除相近的相似sv
 def remove_redundant_sv(chr, sv_ls) :
     filtered_sv_ls = []
-    #logging.info(sv_ls)
     for s_i in range(len(sv_ls)) :
         redundant_flag = False
         for s_j in range(max(0,s_i-5),s_i) :
@@ -1851,13 +1413,10 @@ def remove_redundant_pos(chr, sv_ls, family_mode) :
         if len(gl_assembly_ls) > 1 :
             ass_pos = gl_assembly_ls[1]
             ass_len = gl_assembly_ls[2]
-            #logging.info(sv_ls[0][n_s])
             for i in range(len(sv_ls[0])) :
                 if sv_ls[0][i][2] == ass_pos and sv_ls[0][i][3] == ass_len and sv_ls[0][n_s][1] == sv_ls[0][i][1] and sv_ls[0][n_s][gt_index] == sv_ls[0][i][gt_index]:
                     redundant_index.append(i)
-                    #logging.info(sv_ls[0][i])
             sv_ls[0][n_s][gl_index] = ",".join(sv_ls[0][n_s][gl_index].split(",")[:-1] + ["-4"])
-    #logging.info(redundant_index)
     new_ls = [[] for  x in family_member_ls]
     for n_s in range(len(sv_ls[0])) :
         if n_s not in redundant_index :
@@ -1868,7 +1427,6 @@ def remove_redundant_pos(chr, sv_ls, family_mode) :
 
 
 def run_assembly(args) :
-    #logging.info("1")
     return redetect_nearby_sv(*args)
 
 

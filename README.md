@@ -69,7 +69,7 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 ## Installation
 
 ```
-git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python setup.py install 
+git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python -m pip install .
 ```
 
 

@@ -854,6 +854,7 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
             gl_s_0,gl_s_1,gl_s_2 = [pow(10,int(x)/-10) for x in candidate_SV_s[gl_index].split(",")[0:3]]
             x_s_1,x_s_2,p_data_s,c_s_0,c_s_1 = [float(x) for x in candidate_SV_s[gl_index].split(",")[3:8]]
             gl_f_0,gl_f_1,gl_f_2 = [pow(10,int(x)/-10) for x in candidate_SV_f[gl_index].split(",")[0:3]]
+            x_f_1,x_f_2,p_data_f,c_f_0,c_f_1 = [float(x) for x in candidate_SV_f[gl_index].split(",")[3:8]]
             gl_m_0,gl_m_1,gl_m_2 = [pow(10,int(x)/-10) for x in candidate_SV_m[gl_index].split(",")[0:3]]
             x_m_1,x_m_2,p_data_m,c_m_0,c_m_1 = [float(x) for x in candidate_SV_m[gl_index].split(",")[3:8]]
             if int(c_s_0) == int(c_s_1) == 0 or int(c_f_0) == int(c_f_1) == 0 or int(c_m_0) == int(c_m_1) == 0:

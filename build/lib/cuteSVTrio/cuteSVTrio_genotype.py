@@ -33,25 +33,20 @@ def rescale_read_counts(c0, c1, max_allowed_reads=100):
         c1 = max_allowed_reads - c0
     return c0, c1
 
-# 修改该函数的返回内容，由PL改为GL_P，cal_GL_3得到三个基因型的可能性
 def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len):
     t0, t1 = c0, c1
-    # 保证每个个体的c1不少于最少数量，但是如果sv长度过长(>=1500)，就不再受限
     if c0 + c1 != 0 and c1 < minimum_support_reads and sv_len is None and svtype != "TRA":
         return '0/0',"0,100,100,0,0,0,"+str(t0)+","+str(t1)+",0",996,0
-    # 如果cover和信号的read的数量都是0，变异更多的将为1/1，而不是默认的0/0
-    # 如果使用NSS算法，需要在else中强制1/1，否则强制为0/0
     if svtype not in ["DEL","INS"] :
         if c0 == 0 and c1 == 0 :
             return '0/0',"0,100,100,0,0,0,0,0,-1",996,0
     else :
         if c0 == 0 and c1 == 0 : 
             if sv_len is not None and int(sv_len) >= 1500:
-                return '1/1',"100,100,0,1,1,0,0,0,-1",996,255    # 使用NSS
+                return '1/1',"100,100,0,1,1,0,0,0,-1",996,255    # NSS
             else :
-                return '0/0',"0,100,100,0,0,0,0,0,-1",996,0    # 不使用NSS
+                return '0/0',"0,100,100,0,0,0,0,0,-1",996,0    # no NSS
             
-    # c0无变异信号read，c1有变异信号read
     c0, c1 = rescale_read_counts(c0, c1) # DR, DV
     
     ori_GL00 = np.float64(pow((1-err), c0)*pow(err, c1)*(1-prior)/2)
@@ -68,11 +63,6 @@ def cal_GL_3(c0, c1, svtype, minimum_support_reads, sv_len):
     b = GL_P[0] - GL_P[2] - 1
     c = GL_P[2]
     roots = np.roots([a, b, c])
-    #logging.info(roots[0].real)
-    #logging.info(roots[1].real)
-    #if b**2 - 4*a*c < deta_limit :
-    #    logging.info("%f,%f,%f,%f"%(b**2 - 4*a*c,GL_P[0],GL_P[1],GL_P[2]))
-    # 最后一位作为denovo记录的预留位
     return Genotype[prob.index(max(prob))], "%d,%d,%d,%f,%f,%d,%f,%f,0"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, p_data, t0, t1), max(GQ), QUAL
 
 def cal_Gl_3_sim(c0, c1) :
@@ -92,11 +82,6 @@ def cal_Gl_3_sim(c0, c1) :
     b = GL_P[0] - GL_P[2] - 1
     c = GL_P[2]
     roots = np.roots([a, b, c])
-    #logging.info(roots[0].real)
-    #logging.info(roots[1].real)
-    #if b**2 - 4*a*c < deta_limit :
-    #    logging.info("%f,%f,%f,%f"%(b**2 - 4*a*c,GL_P[0],GL_P[1],GL_P[2]))
-    # 最后一位作为denovo记录的预留位
     return "%f,%f,%f"%(log10(GL_P[0]), log10(GL_P[1]), log10(GL_P[2]))
 
 #cal_GL_2得到单支基因型的编译可能性
@@ -109,8 +94,6 @@ def cal_GL_2(c0, c1) :
     PL = [int(np.around(-10*log10(i))) for i in GL_P]
     GQ = [int(-10*log10(GL_P[0] + GL_P[1]))]
     QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
-    #GQ = [int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]
-    #QUAL = abs(np.around(-10*log10(GL_P[0]), 1))
     return GL_P[0], GL_P[1], PL[0], PL[1], max(GQ), QUAL
 
 def cal_CIPOS(std, num):
@@ -151,8 +134,6 @@ def count_coverage(chr, s, e, f, read_count, up_bound, itround):
     return status
 
 def overlap_cover(svs_list, reads_list, performing_phasing):
-    # [(10024, 12024), (89258, 91258), ...]
-    # [[10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'], [10000, 17490, 1, 'm54238_180901_011437/44762027/ccs'], ...]
     sort_list = list()
     idx = 0
     for i in reads_list:
@@ -218,8 +199,6 @@ def overlap_cover(svs_list, reads_list, performing_phasing):
         for x in overlap_dict[idx]:
             if reads_list[x][2] == 1:
                 overlap2_dict[idx].add(reads_list[x][3])
-    # duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict)
-    # return iteration_dict, primary_num_dict, cover2_dict
     return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict, cover_pos_dict
 
 def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads, performing_phasing):
@@ -233,10 +212,6 @@ def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_
         if performing_phasing :
             pos_count = cover_pos_dict[idx]
         DR = 0
-        #logging.info(read_count)
-        #logging.info(pos_count)
-        #logging.info(len(read_count))
-        #logging.info(len(pos_count))
         for j in range(len(read_count)):
             query = read_count[j]
             if query not in read_id_dict[idx]:
@@ -255,8 +230,6 @@ def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_
     return assign_list
 
 def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict):
-    # [(10024, 12024), (89258, 91258), ...]
-    # [[10000, 10468, 0, 'm54238_180901_011437/52298335/ccs'], [10000, 17490, 1, 'm54238_180901_011437/44762027/ccs'], ...]
     print('start duipai')
     idx = 0
     correct_cover = 0
@@ -312,7 +285,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
     '''
 
     # genotype_trigger = TriggerGT[args.genotype]
-    #return 0
     f=open("%s%s.results/%s.pickle"%(temporary_dir,args.family_mode,chrom), "wb")
     for i in range(len(semi_result_ls)) :
         semi_result_ls[i].sort(key = lambda x:int(x[2]))
@@ -325,7 +297,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
     fa_file.close()
     lines=[]
     BATCH_SIZE=1000
-    #return 0
     for i in range(len(semi_result_ls[0])) :
         res_i = semi_result_ls[0][i]
         if res_i[1] in ["DEL", "INS"]:
@@ -352,9 +323,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             if res_i[1] =="DEL":
                 info_list += ";STRAND=+-"
-            #if i[9].split(",")[8] == "0" :
-            #    info_list = info_list + ";No_Mendel" 
-            #logging.info(i)
             if res_i[9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
@@ -480,8 +448,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=" + str(round(int(res_i[4]) / (int(res_i[4]) + int(res_i[7])), 4))
             except:
                 info_list += ";AF=."
-            #if i[8].split(",")[8] == "0" :
-            #    info_list = info_list + ";No_Mendel" 
             if res_i[9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
@@ -531,20 +497,15 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
             lines.append((res_i[1],vcf_line+"\n"))
         else:
             # BND
-            # info_list = "{PRECISION};SVTYPE={SVTYPE};CHR2={CHR2};END={END};RE={RE};RNAMES={RNAMES}".format(
             info_list = "{PRECISION};SVTYPE={SVTYPE};RE={RE};RNAMES={RNAMES}".format(
                 PRECISION = "IMPRECISE" if res_i[8] == "0/0" else "PRECISE", 
                 SVTYPE = "BND", 
-                # CHR2 = i[3], 
-                # END = str(int(i[4]) + 1), 
                 RE = res_i[5],
                 RNAMES = res_i[12] if args.report_readid else "NULL")
             try:
                 info_list += ";AF=" + str(round(int(i[4]) / (int(i[4]) + int(i[7])), 4))
             except:
                 info_list += ";AF=."
-            #if i[8].split(",")[8] == "0" :
-            #    info_list = info_list + ";No_Mendel" 
             if res_i[9].split(",")[8] in ["-1","-2","-3"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
             if res_i[9].split(",")[8] in ["1","2","3"] :
@@ -570,8 +531,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 ref_bnd = ref_chrom[int(res_i[3])]
             except:
                 ref_bnd = 'N'
-            #if len(i[9]) < 4 :
-            #    logging.info(i[9])
             if args.performing_phasing :
                 GT_FORMAT = "GT:HP_GT:DR:DV:PL:AP:GQ"
             else :
@@ -602,12 +561,8 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
         if len(lines)>BATCH_SIZE:
             pickle.dump(lines,f)
             lines=[]
-    # with open("%sresults/%s.pickle"%(temporary_dir,chrom), "wb") as f:
-    #     pickle.dump(lines,f)
     if len(lines)!=0:
         pickle.dump(lines,f)
-    # f.close()
-    # return lines
 
 
 # def generate_pvcf(args, result, contigINFO, argv, ref_g):
@@ -618,10 +573,6 @@ def generate_pvcf(args, result, reference, chrom):
     except:
         raise Exception("No corresponding contig in reference with %s."%(chrom))
     fa_file.close()
-    # file = open(args.output, 'w')
-    # Generation_VCF_header(file, contigINFO, args.sample, argv)
-    # file.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t%s\n"%(args.sample))
-    # [chrom(0), sv_start, genotype(2), sv_type, sv_end(4), CIPOS, CILEN(6), [gt_re, DR, GT(new), GL, GQ, QUAL], rname(8), svid, ref(10), alts, sv_strand(12), seq]
     lines=[]
     for i in result:
         if i == []:
@@ -633,14 +584,6 @@ def generate_pvcf(args, result, reference, chrom):
         if i[3] == 'INS':
             if abs(i[14]) > args.max_size and args.max_size != -1:
                 continue
-            '''
-            if i[11] == '<INS>':
-                ref = str(ref_g[i[0]].seq[max(i[1]-1, 0)])
-                alt = str(ref_g[i[0]].seq[max(i[1]-1, 0)]) + i[13]
-            else:
-                ref = i[10]
-                alt = i[11]
-            '''
             ref = str(ref_chrom[max(i[1]-1, 0)])
             alt = i[11]
             info_list = "{PRECISION};SVTYPE={SVTYPE};SVLEN={SVLEN};END={END};CIPOS={CIPOS};CILEN={CILEN};RE={RE};RNAMES={RNAMES}".format(
@@ -844,7 +787,6 @@ def load_valuable_chr(path):
     return valuable_chr
 
 def load_bed(bed_file, Task_list):
-    # Task_list: [[chr, start, end], ...]
     bed_regions = dict()
     if bed_file != None:
         # only consider regions in BED file
@@ -867,32 +809,24 @@ def load_bed(bed_file, Task_list):
     else:
         return None
 
-# 解决无解的情况
-# 该函数会执行一部分NSS算法功能，需要确定原因，以及是否需要修改
 def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
     gt_tag = ["0/0","0/1","1/1"]
     gl_index = 9
     gt_index = 8
     if family_mode == "M1" :
         unsolvable_num = 0
-        # 处理子女单支基因型
         for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
             candidate_SV = candidate_single_SV_gt_fam_ls[0][i]
             gl0,gl1,gl2 = [pow(10,int(x)/-10) for x in candidate_SV[gl_index].split(",")[0:3]]
             x1,x2,p_data,c0,c1 = [float(x) for x in candidate_SV[gl_index].split(",")[3:8]]
             if int(c0) == int(c1) == 0 :
                 continue
-            #if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) > 84517825 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 84518025:
-            #    logging.info("%s/%s/%s"%(str(gl0),str(gl1),str(gl2)))
-            #    logging.info("%s/%s/%s/%s/%s"%(str(x1),str(x2),str(p_data),str(c0),str(c1)))
             p_data = pow(10,-1*p_data)
             a = 1
             b = gl0 - gl2 - 1
             c = gl2
             if b**2 - 4*a*c >= deta_limit :
                 continue
-            #if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) > 84517825 and int(candidate_single_SV_gt_fam_ls[0][i][2]) < 84518025:
-            #    logging.info("3%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
             p_data_f_m = np.float64(pow(err, c0)*pow((1-err), c1))
             p_data_notf_notm = np.float64(pow(0.5, c0+c1))
             gl_f = [pow(10,int(x)/-10) for x in candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[0:3]]
@@ -903,25 +837,16 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
             p_m_data = (p_data_f_m*p_f*p_m + p_data_notf_notm*(1-p_f)*p_m) / p_data
             if p_f_data > 1 or p_m_data > 1 :
                 p_f_data,p_m_data = p_f_data / max(p_f_data,p_m_data),p_m_data / max(p_f_data,p_m_data)
-                #logging.info("%f,%f"%(p_f_data,p_m_data))
             t0 = (1-p_f_data)*(1-p_m_data)
             t1 = (1-p_f_data)*p_m_data + p_f_data*(1-p_m_data)
             t2 = p_f_data*p_m_data
-            #logging.info("%f,%f,%f,%f,%f,%f"%(gl0,gl1,gl2,t0,t1,t2))
             gl0 = (1-p_f_data)*(1-p_m_data)
             gl1 = (1-p_f_data)*p_m_data + p_f_data*(1-p_m_data)
             gl2 = p_f_data*p_m_data
-            #logging.info(gl0)
-            #logging.info(gl1)
-            #logging.info(gl2)
             p_data = int(np.around(-10*log10(p_data)))
             candidate_single_SV_gt_fam_ls[0][i][gl_index] = "%d,%d,%d,%f,%f,%d,%f,%f,0"%(-1, -1, -1, min(1,p_f_data), min(1,p_m_data), p_data, c0, c1)
-            #gl_ls = [gl0, gl1, gl2]
-            #candidate_single_SV_gt_fam_ls[0][i][gt_index] = gt_tag[gl_ls.index(max(gl_ls))]
             modify_gl_string(candidate_single_SV_gt_fam_ls[0][i],svtype)
             unsolvable_num += 1
-            #modify_gl_string()
-        # 同时处理父母的单支基因型
         for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
             candidate_SV_s = candidate_single_SV_gt_fam_ls[0][i]
             candidate_SV_f = candidate_single_SV_gt_fam_ls[1][i]
@@ -934,7 +859,6 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
             x_m_1,x_m_2,p_data_m,c_m_0,c_m_1 = [float(x) for x in candidate_SV_m[gl_index].split(",")[3:8]]
             if int(c_s_0) == int(c_s_1) == 0 or int(c_f_0) == int(c_f_1) == 0 or int(c_m_0) == int(c_m_1) == 0:
                 continue
-            #logging.info(candidate_SV_m[gl_index])
             a_f = 1
             b_f = gl_f_0 - gl_f_2 - 1
             c_f = gl_f_2
@@ -960,8 +884,6 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
                 gl_m_1 = (1-x_m_1) * x_m_2 + x_m_1 * (1-x_m_2)
                 gl_m_2 = x_m_1 * x_m_2
                 candidate_single_SV_gt_fam_ls[2][i][gl_index] = "%d,%d,%d,%f,%f,%d,%f,%f,0"%(-1, -1, -1, min(1,x_m_1), min(1,x_m_2), p_data_m, c_m_0, c_m_1)
-                #gl_ls = [gl_m_0, gl_m_1, gl_m_2]
-                #candidate_single_SV_gt_fam_ls[2][i][gt_index] = gt_tag[gl_ls.index(max(gl_ls))]
                 modify_gl_string(candidate_single_SV_gt_fam_ls[2][i],svtype)
                 continue
             if b_f**2 - 4*a_f*c_f < deta_limit and b_m**2 - 4*a_m*c_m >= deta_limit:
@@ -981,12 +903,9 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
                 gl_f_1 = (1-x_f_1) * x_f_2 + x_f_1 * (1-x_f_2)
                 gl_f_2 = x_f_1 * x_f_2
                 candidate_single_SV_gt_fam_ls[1][i][gl_index] = "%d,%d,%d,%f,%f,%d,%f,%f,0"%(-1,-1,-1, min(1,x_f_1), min(1,x_f_2), p_data_f, c_f_0, c_f_1)
-                #gl_ls = [gl_f_0, gl_f_1, gl_f_2]
-                #candidate_single_SV_gt_fam_ls[1][i][gt_index] = gt_tag[gl_ls.index(max(gl_ls))]
                 modify_gl_string(candidate_single_SV_gt_fam_ls[1][i],svtype)
                 continue
             if b_f**2 - 4*a_f*c_f < deta_limit and b_m**2 - 4*a_m*c_m < deta_limit:
-                # 这种情况非常少见，概率在千分之一以下，所以不使用复杂的距离比较，来确定子女两个单支概率对父母的分配，而是使用随机分配
                 if random.randint(1,2) == 1 :
                     x_f_1 = x_s_1
                     x_m_1 = x_s_2
@@ -1001,8 +920,6 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
                 gl_f_1 = (1-x_f_1) * x_f_2 + x_f_1 * (1-x_f_2)
                 gl_f_2 = x_f_1 * x_f_2
                 candidate_single_SV_gt_fam_ls[1][i][gl_index] = "%d,%d,%d,%f,%f,%d,%f,%f,0"%(-1,-1,-1, min(1,x_f_1), min(1,x_f_2), p_data_f, c_f_0, c_f_1)
-                #gl_ls = [gl_f_0, gl_f_1, gl_f_2]
-                #candidate_single_SV_gt_fam_ls[1][i][gt_index] = gt_tag[gl_ls.index(max(gl_ls))]
                 modify_gl_string(candidate_single_SV_gt_fam_ls[1][i],svtype)
                 if x_m_1 == 0 :
                     x_m_2 = 1-gl_m_0
@@ -1012,37 +929,10 @@ def unsolvable_correction(candidate_single_SV_gt_fam_ls, svtype, family_mode) :
                 gl_m_1 = (1-x_m_1) * x_m_2 + x_m_1 * (1-x_m_2)
                 gl_m_2 = x_m_1 * x_m_2
                 candidate_single_SV_gt_fam_ls[2][i][gl_index] = "%d,%d,%d,%f,%f,%d,%f,%f,0"%(-1,-1,-1, min(1,x_m_1), min(1,x_m_2), p_data_m, c_m_0, c_m_1)
-                #gl_ls = [gl_m_0, gl_m_1, gl_m_2]
-                #candidate_single_SV_gt_fam_ls[2][i][gt_index] = gt_tag[gl_ls.index(max(gl_ls))]
                 modify_gl_string(candidate_single_SV_gt_fam_ls[2][i],svtype)
                 continue
-    #logging.info(len(candidate_single_SV_gt_fam_ls[0]))
-    #return unsolvable_num/len(candidate_single_SV_gt_fam_ls[0])
 
-# 重新计算GL，GQ，QUAL等相关信息，根据已有的AP信息，修正其他信息
 def modify_genotype(candidate_single_SV_gt_fam_ls, svtype) :
-    '''
-    if svtype in ("INS","DEL") :
-        gl_index = 9
-        gt_index = 8
-        gq_index = 10
-        qual_index = 11
-    elif svtype == "INV" :
-        gl_index = 8
-        gt_index = 6
-        gq_index = 9
-        qual_index = 10
-    elif svtype == "DUP" :
-        gl_index = 7
-        gt_index = 6
-        gq_index = 8
-        qual_index = 9
-    else :
-        gl_index = 8
-        gt_index = 7
-        gq_index = 9
-        qual_index = 10
-    '''
     gl_index = 9
     gt_index = 8
     gq_index = 10
@@ -1064,11 +954,6 @@ def modify_genotype(candidate_single_SV_gt_fam_ls, svtype) :
             candidate_single_SV_gt_fam_ls[i][j][gq_index] = max([int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))])
             candidate_single_SV_gt_fam_ls[i][j][qual_index] = abs(np.around(-10*log10(GL_P[0]), 1))
 
-# 在将三元基因型概率转为二元单支变异概率为分界线，之前统一使用三元基因型概率，之后统一使用二元单支变异概率
-# 所以每当使用并修改了二元单支变异概率，导致其与三元基因型概率不一致时，都需要运行函数，消除误差
-# 需要运行一下函数的情况：
-# 1. 三元基因型概率转为二元单支变异概率时，遇到的无解特殊处理等会导致两者不匹配的情况
-# 2. 转化后，只能修改二元单支变异概率。一旦修改，需要运行以下函数，或者最后统一运行modify_genotype
 def modify_gl_string(candidate_single_SV,svtype) :
     gl_index = 9
     gt_index = 8
@@ -1090,7 +975,6 @@ def modify_gl_string(candidate_single_SV,svtype) :
     candidate_single_SV[gq_index] = str(max([int(-10*log10(GL_P[1] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[2])), int(-10*log10(GL_P[0] + GL_P[1]))]))
     candidate_single_SV[qual_index] = str(abs(np.around(-10*log10(GL_P[0]), 1)))
 
-# 按照父母的信息，修正信号read过少，导致的fn
 def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimum_support_reads_list, family_mode) :
     sv_len_distance_threshold = 0.2
     gl_index = 9
@@ -1104,14 +988,9 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
     modify_rate = 1
     if svtype not in ["DEL","INS","INV","DUP"] :
         return
-    #if svtype in ["DEL","INS"] :
-    #    length_limit = 1500
-    #elif svtype == "INV" :
-    #    length_limit = 1500
     length_limit = 1500
     if family_mode == 'M1' :
-        #supple_support_reads_threshold = max(ceil(minimum_support_reads/2),2)
-        # 家系的有效信号补充
+        # effective signal supplement
         for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
             sv_gl_fam = []
             sv_gl_fam.append([int(float(v)) for v in candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[6:8]])
@@ -1126,7 +1005,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
             sv_gp_fam.append([v/sum(member_gp) for v in member_gp])
             fam_sv_len = [int(x) for x in candidate_single_SV_gt_fam_ls[0][i][sv_len_index].split(",")]
             
-            # 变异位点信号总数超过minimum_support_reads，某个个体信号总数小于minimum_support_reads，但是变异长度超过1500，不再强制为0/0
+            # if the total number of sv sigs exceeds minimum_support_reads, or if the total number of sigs for a member is less than minimum_support_reads but the sv length exceeds 1500, it will no longer be forced to be 0/0
             for j in range(3) :
                 if minimum_support_reads_list[j] < process_thres :
                     continue
@@ -1147,14 +1026,13 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/0'
                     
             
-            # 处理c0，c1全为0的情况
-            # 之前的c0的计算方式是跨过整个变异长度，但如果变异长度过长，可能发生在变异位点附近有序列，但是序列不够长以足够跨过整个变异的情况出现，所以在c0，c1都为0的情况下
-            # 由于完全没有实际read信息，所以使用理论的mendel修正
+            # c0=c1=0
+            # since no read information, the theoretical Mendel correction is used.
             for j in range(3) :
                 if int(candidate_single_SV_gt_fam_ls[0][i][3]) < 1500 :
                     break
                 if sv_gl_fam[j][0]+sv_gl_fam[j][1] == 0 :
-                    # 如果是子代，就使用父母本通过完全理论上的Mendel遗传定律确定子代基因型；如果是父母本，就和子代保持一致
+                    # if it's the child, genotype is determined using the parents' genotypes and Mendel's laws; if it's the parents' genotypes, it's consistent with the offspring's.
                     if j == 0 :
                         gpf = sv_gp_fam[1][1]/2 + sv_gp_fam[1][2]
                         gpm = sv_gp_fam[2][1]/2 + sv_gp_fam[2][2]
@@ -1173,8 +1051,8 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
 
-            # 信号数量足够多，但是gt的基因型确定过程中置信度不够
-            # 处理孩子
+            # the number of sigs is sufficient, but the confidence is insufficient in determining the gt.
+            # child
             if minimum_support_reads_list[0] < process_thres :
                 pass
             else :
@@ -1211,21 +1089,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                             candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
 
-                        #_,gl_str,GQ,QUAL = cal_GL_3(new_c0,new_c1, svtype, minimum_support_reads_list[0], fam_sv_len[0])
-                        #gl_str_split = gl_str.split(",")
-                        #gl_str_split[8] = "-1"
-                        #gl_str = ",".join(gl_str_split)
-                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        #if gl_str_split.index(max(gl_str_split)) > 0 :
-                        #    candidate_single_SV_gt_fam_ls[0][i][gl_index] = gl_str
-                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
-                        #        candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/0'
-                        #    else :
-                        #        candidate_single_SV_gt_fam_ls[0][i][gt_index] = '1/1'
-                        #    candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
-                        #    candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
-
-            # 处理父母
+            # parents
             if minimum_support_reads_list[1] < process_thres :
                 pass
             else :
@@ -1251,20 +1115,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                             candidate_single_SV_gt_fam_ls[1][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[1][i][qual_index] = str(QUAL)
-
-                        #_,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[1][0],sv_gl_fam[0][1]+sv_gl_fam[1][1], svtype, minimum_support_reads_list[1], fam_sv_len[0])
-                        #gl_str_split = gl_str.split(",")
-                        #gl_str_split[8] = "-1"
-                        #gl_str = ",".join(gl_str_split)
-                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        #if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
-                        #    candidate_single_SV_gt_fam_ls[1][i][gl_index] = gl_str
-                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
-                        #        candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/0'
-                        #    else :
-                        #        candidate_single_SV_gt_fam_ls[1][i][gt_index] = '1/1'
-                        #    candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(GQ)
-                        #    candidate_single_SV_gt_fam_ls[1][i][qual_index] = str(QUAL)
             if minimum_support_reads_list[2] < process_thres :
                 pass
             else :
@@ -1290,20 +1140,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                             candidate_single_SV_gt_fam_ls[2][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[2][i][qual_index] = str(QUAL)
-
-                        #_,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[0][0]+sv_gl_fam[2][0],sv_gl_fam[0][1]+sv_gl_fam[2][1], svtype, minimum_support_reads_list[2], fam_sv_len[0])
-                        #gl_str_split = gl_str.split(",")
-                        #gl_str_split[8] = "-1"
-                        #gl_str = ",".join(gl_str_split)
-                        #gl_str_split = [10**(int(v)/-10) for v in gl_str.split(",")[0:3]]
-                        #if gl_str_split.index(max(gl_str_split)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[2]) / max(fam_sv_len[0],fam_sv_len[2])) < sv_len_distance_threshold:
-                        #    candidate_single_SV_gt_fam_ls[2][i][gl_index] = gl_str
-                        #    if gl_str_split.index(max(gl_str_split)) == 1 :
-                        #        candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/0'
-                        #    else :
-                        #        candidate_single_SV_gt_fam_ls[2][i][gt_index] = '1/1'
-                        #    candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(GQ)
-                        #    candidate_single_SV_gt_fam_ls[2][i][qual_index] = str(QUAL)
             for j in range(len(candidate_single_SV_gt_fam_ls)) :
                 gl_ls = [round(float(x)) for x in candidate_single_SV_gt_fam_ls[j][i][gl_index].split(",")[3:5]]
                 candidate_single_SV_gt_fam_ls[j][i][gt_index] = str(max(gl_ls))+"/"+str(min(gl_ls))
@@ -1319,7 +1155,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
             sv_gp_fam.append([v/sum(member_gp) for v in member_gp])
             fam_sv_len = [int(x) for x in candidate_single_SV_gt_fam_ls[0][i][sv_len_index].split(",")]
             
-            # 变异位点信号总数超过minimum_support_reads，某个个体信号总数小于minimum_support_reads，但是变异长度超过1500，不再强制为0/0
             for j in range(2) :
                 if minimum_support_reads_list[j] < process_thres :
                     continue
@@ -1343,7 +1178,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 if int(candidate_single_SV_gt_fam_ls[0][i][3]) < 1500 :
                     break
                 if sv_gl_fam[j][0]+sv_gl_fam[j][1] == 0 :
-                    # 如果是子代，就和唯一的父母保持一致；如果是父母本，就和子代保持一致
                     if j == 0 :
                         GL_P = [v/sum(sv_gp_fam[1]) for v in sv_gp_fam[1]]
                     else :
@@ -1359,8 +1193,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
 
-            # 信号数量足够多，但是gt的基因型确定过程中置信度不够
-            # 处理孩子
             if minimum_support_reads_list[0] < process_thres :
                 pass
             else :
@@ -1394,7 +1226,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                             candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(max(GQ))
                             candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
 
-            # 处理唯一父母
             if minimum_support_reads_list[1] < process_thres :
                 pass
             else :
@@ -1435,9 +1266,6 @@ def check_gt_consistent(candidate_single_SV_gt_fam_ls) :
             if max(gl_ls) != max(gt_ls) or min(gl_ls) != min(gt_ls) :
                 logging.info(candidate_single_SV_gt_fam_ls[j][i])
 
-
-# 该违背mendel遗传定律的修正方法只使用gt型，在phasing之前；只改动gt，不会改动概率
-# 具有修改优先级：个体之间排序靠前优先；fp修正比fn修正优先
 def inconformity_mendel_modify(candidate_single_SV_gt_fam_ls, svtype, minimum_support_reads, family_mode) :
     family_mode_index_ls = ["M1","M2"]
     family_member_set = [["1","2","3"],["1","2"]]
@@ -1448,7 +1276,6 @@ def inconformity_mendel_modify(candidate_single_SV_gt_fam_ls, svtype, minimum_su
     for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
         if abs(int(candidate_single_SV_gt_fam_ls[0][i][3])) > 100 :
             continue
-        #logging.info(candidate_single_SV_gt_fam_ls)
         sv_gt_fam = []
         for j in range(len(family_member_ls)) :
             sv_gt_fam.append([int(v) for v in candidate_single_SV_gt_fam_ls[j][i][gt_index].split("/")])
@@ -1467,9 +1294,6 @@ def inconformity_mendel_modify(candidate_single_SV_gt_fam_ls, svtype, minimum_su
                 candidate_single_SV_gt_fam_ls[j][i][gt_index] = "0/0"
                 break
         
-
-# 只考虑ins和del，按照顺序，如果后一个变异完全包含在前一个变异中，并且类型不同，那么就出现了一个双等位基因
-# 对于0/0变异，如果后一个变异的c0去掉前一个的c1是否能够成为一个变异，如果是，那么将其强制为0/1
 def allele_correction(chr,member,candidate_single_SV_gt_ls, minimum_support_reads) :
     if chr not in chr_ls :
         return candidate_single_SV_gt_ls

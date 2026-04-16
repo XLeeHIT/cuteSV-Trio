@@ -9,30 +9,25 @@ import copy
 import time
 
 
-#consistency_threshold用来限制两个基因型概率的差值
+#consistency_threshold limit the probability of two genotypes
 consistency_threshold = 0.15
-#genotype_threshold用来确定某个基因型概率是否接近0，1
+#genotype_threshold determine whether the probability of a certain genotype is close to 0 or 1
 genotype_threshold = 0.1
 
-# 以下代码功能为安装pos分区域记录read和sv之间的关系，read为read name，sv为编译列表中的索引位置
 def make_read_to_sv_list(chr, candidate_single_SV_gt, family_mode, read_pos_interval) :
     read_pos_max = 0
     for i in candidate_single_SV_gt :
         if int(i[2]) > read_pos_max :
             read_pos_max = int(i[2])
     read_pos_max =int(read_pos_max * 1.01)
-    #logging.info(candidate_single_SV_gt_fam_ls[0][:10])
     read_to_var_list = [[[],[]] for j in range(ceil(read_pos_max/read_pos_interval))]
     read_to_non_list = [[[],[]] for j in range(ceil(read_pos_max/read_pos_interval))]
     for j in range(len(candidate_single_SV_gt)) :
         if candidate_single_SV_gt[j][12] == '' :
             continue
-        #if chr == "1" :
-        #    logging.info("%s/%s"%(candidate_single_SV_gt[j][12],candidate_single_SV_gt[j][15]))
         read_names = candidate_single_SV_gt[j][12].split(",")
         read_poss = [int(x) for x in candidate_single_SV_gt[j][15].split(",")]
         for k in range(len(read_names)) :
-            #logging.info("%s/%s"%(str(read_pos_max),str(read_poss[k])))
             read_interval_index = ceil(read_poss[k]/read_pos_interval) - 1
             if read_names[k] in read_to_var_list[read_interval_index][0] :
                 read_to_var_list[read_interval_index][1][read_to_var_list[read_interval_index][0].index(read_names[k])].append(j)
@@ -44,7 +39,6 @@ def make_read_to_sv_list(chr, candidate_single_SV_gt, family_mode, read_pos_inte
         read_names = candidate_single_SV_gt[j][16].split(",")
         read_poss = [int(x) for x in candidate_single_SV_gt[j][17].split(",")]
         for k in range(len(read_names)) :
-            #logging.info("%s/%s"%(str(read_pos_max),str(read_poss[k])))
             read_interval_index = ceil(read_poss[k]/read_pos_interval) - 1
             if read_names[k] in read_to_non_list[read_interval_index][0] :
                 read_to_non_list[read_interval_index][1][read_to_non_list[read_interval_index][0].index(read_names[k])].append(j)
@@ -61,7 +55,7 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
         if family_member == "1" :
             dis_1 = min(abs(ch_gt[0]-fa_gt[0]),abs(ch_gt[0]-fa_gt[1])) + min(abs(ch_gt[1]-mo_gt[0]),abs(ch_gt[1]-mo_gt[1]))
             dis_2 = min(abs(ch_gt[1]-fa_gt[0]),abs(ch_gt[1]-fa_gt[1])) + min(abs(ch_gt[0]-mo_gt[0]),abs(ch_gt[0]-mo_gt[1]))
-            # 0代表孩子的第一个基因来自父本，第二个来自母本；1代表孩子的第一个基因来自母本，第二个来自父本
+            # 0 child's alleles comes from the father and mother；1 child's alleles comes from the mother and father
             if dis_1 < consistency_threshold and dis_2 > 1-consistency_threshold :
                 return True,0
             elif dis_2 < consistency_threshold and dis_1 > 1-consistency_threshold :
@@ -71,7 +65,7 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
         elif family_member == "2" :
             dis_1 = min(abs(fa_gt[0]-ch_gt[0])+min(abs(mo_gt[0]-ch_gt[1]),abs(mo_gt[1]-ch_gt[1])),abs(fa_gt[0]-ch_gt[1])+min(abs(mo_gt[0]-ch_gt[0]),abs(mo_gt[1]-ch_gt[0])))
             dis_2 = min(abs(fa_gt[1]-ch_gt[0])+min(abs(mo_gt[0]-ch_gt[1]),abs(mo_gt[1]-ch_gt[1])),abs(fa_gt[1]-ch_gt[1])+min(abs(mo_gt[0]-ch_gt[0]),abs(mo_gt[1]-ch_gt[0])))
-            # 0代表父本的第一个基因遗传向孩子，1代表父本的第二个基因遗传向孩子
+            # 0 first gene inherited to child，1 second gene inherited to child
             if dis_1 < consistency_threshold and dis_2 > 1-consistency_threshold :
                 return True,0
             elif dis_2 < consistency_threshold and dis_1 > 1-consistency_threshold :
@@ -81,7 +75,7 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
         else :
             dis_1 = min(abs(mo_gt[0]-ch_gt[0])+min(abs(fa_gt[0]-ch_gt[1]),abs(fa_gt[1]-ch_gt[1])),abs(mo_gt[0]-ch_gt[1])+min(abs(fa_gt[0]-ch_gt[0]),abs(fa_gt[1]-ch_gt[0])))
             dis_2 = min(abs(mo_gt[1]-ch_gt[0])+min(abs(fa_gt[0]-ch_gt[1]),abs(fa_gt[1]-ch_gt[1])),abs(mo_gt[1]-ch_gt[1])+min(abs(fa_gt[0]-ch_gt[0]),abs(fa_gt[1]-ch_gt[0])))
-            # 0代表母本的第一个基因遗传向孩子，1代表母本的第二个基因遗传向孩子
+            # 0 first gene inherited to child，1 second gene inherited to child
             if dis_1 < consistency_threshold and dis_2 > 1-consistency_threshold :
                 return True,0
             elif dis_2 < consistency_threshold and dis_1 > 1-consistency_threshold :
@@ -96,7 +90,6 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
             dis_2 = max(abs(ch_gt[0]-fa_gt[0]),abs(ch_gt[0]-fa_gt[1]))
             dis_3 = min(abs(ch_gt[1]-fa_gt[0]),abs(ch_gt[1]-fa_gt[1]))
             dis_4 = max(abs(ch_gt[1]-fa_gt[0]),abs(ch_gt[1]-fa_gt[1]))
-            # 0代表孩子的第一个基因来自父本，第二个来自母本；1代表孩子的第一个基因来自母本，第二个来自父本
             if dis_2 < consistency_threshold and dis_3 > 1-consistency_threshold :
                 return True,0
             elif dis_4 < consistency_threshold and dis_1 > 1-consistency_threshold :
@@ -108,7 +101,6 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
             dis_2 = max(abs(fa_gt[0]-ch_gt[0]),abs(fa_gt[0]-ch_gt[1]))
             dis_3 = min(abs(fa_gt[1]-ch_gt[0]),abs(fa_gt[1]-ch_gt[1]))
             dis_4 = max(abs(fa_gt[1]-ch_gt[0]),abs(fa_gt[1]-ch_gt[1]))
-            # 0代表父本的第一个基因遗传向孩子，1代表父本的第二个基因遗传向孩子
             if dis_2 < consistency_threshold and dis_3 > 1-consistency_threshold :
                 return True,0
             elif dis_4 < consistency_threshold and dis_1 > 1-consistency_threshold :
@@ -116,21 +108,13 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
             else :
                 return False,-1
 
-# [gt1,gt2] 如果是纯和，则返回True
 def gt_homozygous(genotype_ls) :
     return max(abs(genotype_ls[0]-1),abs(genotype_ls[1]-1)) < genotype_threshold or max(abs(genotype_ls[0]-0),abs(genotype_ls[1]-0)) < genotype_threshold
 
 def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode, read_pos_interval, minimum_support_reads_list, phase_all_ctgs, parents_phasing, family_bams, remap_merge_k, remap_minimizer_window, assembly_correction_threshold, performing_assembly, multiple_phasing) :
     start_time = time.time()
-    #for i in range(10) :
-    #    logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-    #candidate_single_SV_gt_fam_ls[0] = sorted(candidate_single_SV_gt_fam_ls[0], key=lambda sv: int(sv[2]))
-    #logging.info("Phasing starting of %s:%f."%(chr, time.time()-start_time))
     chr_ls = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"]
-    #chr_ls = []
     if phase_all_ctgs == True or (phase_all_ctgs == False and chr in chr_ls) :
-        #logging.info("phasing %s"%(chr))
-        #return (chr,candidate_single_SV_gt_fam_ls)
         phasing_again_flag = True
         while(phasing_again_flag) :
             read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[0], family_mode, read_pos_interval)
@@ -146,10 +130,6 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                        read_to_var_list, 
                                                                                                        read_to_non_list, 
                                                                                                        1)
-            #for i in range(len(phased_sv_haplotype_child_father)) :
-            #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-            #        logging.info(phased_sv_haplotype_child_father[i])
-            #        logging.info(phased_sv_haplotype_child_mother[i])
             phased_sv_haplotype_child_father,phased_sv_haplotype_child_mother = genetic_phasing_member(chr, 
                                                                                                        candidate_single_SV_gt_fam_ls, 
                                                                                                        phased_sv_haplotype_child_father, 
@@ -160,11 +140,6 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                        read_to_var_list, 
                                                                                                        read_to_non_list, 
                                                                                                        2)
-
-            #for i in range(len(phased_sv_haplotype_child_father)) :
-            #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-            #        logging.info(phased_sv_haplotype_child_father[i])
-            #        logging.info(phased_sv_haplotype_child_mother[i])
 
             if parents_phasing :
                 read_to_var_list, read_to_non_list = make_read_to_sv_list(chr, candidate_single_SV_gt_fam_ls[1], family_mode, read_pos_interval)
@@ -180,10 +155,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                            read_to_var_list, 
                                                                                                            read_to_non_list, 
                                                                                                            1)
-                #for i in range(len(phased_sv_haplotype_child_father)) :
-                #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-                #        logging.info(phased_sv_haplotype_child_father[i])
-                #        logging.info(phased_sv_haplotype_child_mother[i])
+
                 phased_sv_haplotype_father_inher,phased_sv_haplotype_father_forgo = genetic_phasing_member(chr, 
                                                                                                            candidate_single_SV_gt_fam_ls, 
                                                                                                            phased_sv_haplotype_father_inher, 
@@ -194,10 +166,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                            read_to_var_list, 
                                                                                                            read_to_non_list, 
                                                                                                            2)
-                #for i in range(len(phased_sv_haplotype_child_father)) :
-                #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-                #        logging.info(phased_sv_haplotype_child_father[i])
-                #        logging.info(phased_sv_haplotype_child_mother[i])
+
                 phased_sv_haplotype_mother_inher = []
                 phased_sv_haplotype_mother_forgo = []
                 if family_mode == "M1" :
@@ -212,10 +181,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                                read_to_var_list, 
                                                                                                                read_to_non_list, 
                                                                                                                1)
-                    #for i in range(len(phased_sv_haplotype_child_father)) :
-                    #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-                    #        logging.info(phased_sv_haplotype_child_father[i])
-                    #        logging.info(phased_sv_haplotype_child_mother[i])
+
                     phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo = genetic_phasing_member(chr, 
                                                                                                                candidate_single_SV_gt_fam_ls, 
                                                                                                                phased_sv_haplotype_mother_inher, 
@@ -226,10 +192,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                                                                                                read_to_var_list, 
                                                                                                                read_to_non_list, 
                                                                                                                2)
-                    #for i in range(len(phased_sv_haplotype_child_father)) :
-                    #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-                    #        logging.info(phased_sv_haplotype_child_father[i])
-                    #        logging.info(phased_sv_haplotype_child_mother[i])
+
             else :
                 phased_sv_haplotype_father_inher = []
                 phased_sv_haplotype_father_forgo = []
@@ -247,12 +210,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                      family_mode,
                                      True,
                                      parents_phasing)
-            #for i in range(len(phased_sv_haplotype_child_father)) :
-            #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-            #        logging.info(phased_sv_haplotype_child_father[i])
-            #        logging.info(phased_sv_haplotype_child_mother[i])
-            #if performing_assembly :
-            #if parents_phasing :
+
             change_num = correct_gt_signal_haplotype_distribution(chr,
                                      candidate_single_SV_gt_fam_ls, 
                                      phased_sv_haplotype_child_father, 
@@ -270,57 +228,13 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                 phasing_again_flag = False
             else :
                 logging.info("phasing again %s-%s"%(chr,str(change_num)))
-                
-        
-        #for i in range(len(phased_sv_haplotype_child_father)) :
-        #    if phased_sv_haplotype_child_father[i][5] == "931728" :
-        #        logging.info(phased_sv_haplotype_child_father[i])
-        #        logging.info(phased_sv_haplotype_child_mother[i])
-        #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-        #    if candidate_single_SV_gt_fam_ls[0][i][0] == "22" and 0 <= int(candidate_single_SV_gt_fam_ls[0][i][2]) == 25808729 :
-        #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-        #        #logging.info("phased_sv_haplotype_child_father:%s"%(phased_sv_haplotype_child_father[i]))
-        #        #logging.info("phased_sv_haplotype_child_mother:%s"%(phased_sv_haplotype_child_mother[i]))
-
-        # 按照sv的pos位置提取连续的多个临近sv，定义为复杂区域，针对该区域构建consensus，再重比对，再重新检测，替换掉原本的sv
-        #_, candidate_single_SV_gt_fam_ls = redetect_nearby_sv(path,
-        #                                chr,
-        #                                candidate_single_SV_gt_fam_ls, 
-        #                                phased_sv_haplotype_child_father, 
-        #                                phased_sv_haplotype_child_mother, 
-        #                                phased_sv_haplotype_father_inher, 
-        #                                phased_sv_haplotype_father_forgo, 
-        #                                phased_sv_haplotype_mother_inher, 
-        #                                phased_sv_haplotype_mother_forgo, 
-        #                                [0,len(candidate_single_SV_gt_fam_ls[0])-1],
-        #                                family_mode,
-        #                                family_bams,
-        #                                minimum_support_reads_list,
-        #                                remap_merge_k,
-        #                                remap_minimizer_window,
-        #                                assembly_correction_threshold)
-
-        #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-        #    if candidate_single_SV_gt_fam_ls[0][i][0] == "22" and 0 <= int(candidate_single_SV_gt_fam_ls[0][i][2]) == 25808729 :
-        #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-
-        #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-        #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and 1223225 <= int(candidate_single_SV_gt_fam_ls[0][i][2]) <= 1224225 :
-        #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-        #        logging.info("phased_sv_haplotype_child_father:%s"%(phased_sv_haplotype_child_father[i]))
-        #        logging.info("phased_sv_haplotype_child_mother:%s"%(phased_sv_haplotype_child_mother[i]))
         
         if family_mode == "M1" :
             if parents_phasing :
                 resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list)
             else :
                 resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
-        
-        #for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-        #    if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) == 1137158 :
-        #        logging.info("1%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-        #        logging.info("phased_sv_haplotype_child_father:%s"%(phased_sv_haplotype_child_father[i]))
-        #        logging.info("phased_sv_haplotype_child_mother:%s"%(phased_sv_haplotype_child_mother[i]))
+
     else :
         phasing_candidate_fam_SV(chr,
                                  candidate_single_SV_gt_fam_ls, 
@@ -340,7 +254,6 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
     
     logging.info("Finished phasing %s:%f."%(chr, time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo)
-    #return (chr,candidate_single_SV_gt_fam_ls)
 
 def genetic_no_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, read_pos_interval, minimum_support_reads_list, phase_all_ctgs) :
     start_time = time.time()
@@ -375,7 +288,6 @@ def family_nearest_match(fam_genotype_ls, family_mode, family_member) :
         else :
             dis_1 = min(abs(mo_gt[0]-ch_gt[0])+min(abs(fa_gt[0]-ch_gt[1]),abs(fa_gt[1]-ch_gt[1])),abs(mo_gt[0]-ch_gt[1])+min(abs(fa_gt[0]-ch_gt[0]),abs(fa_gt[1]-ch_gt[0])))
             dis_2 = min(abs(mo_gt[1]-ch_gt[0])+min(abs(fa_gt[0]-ch_gt[1]),abs(fa_gt[1]-ch_gt[1])),abs(mo_gt[1]-ch_gt[1])+min(abs(fa_gt[0]-ch_gt[0]),abs(fa_gt[1]-ch_gt[0])))
-        #0代表子代的第一个基因遗传自父本，或父本第一个基因遗传向子代；1代表子代的第二个基因遗传自父本，或父本第二个基因遗传向子代
         if dis_1 < dis_2 :
             return True,0
         else :
@@ -395,7 +307,7 @@ def family_nearest_match(fam_genotype_ls, family_mode, family_member) :
             return True,1
         
 def recalculate_block_no(phased_sv_haplotype_1, phased_sv_haplotype_2) :
-    # 以下处理只考虑单独的杂合
+    # only considers heterozygosities
     new_block_no = 1
     for sv_i in range(len(phased_sv_haplotype_1)) :
         if phased_sv_haplotype_1[sv_i][1] in [1,2,3] :
@@ -428,7 +340,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
             logging.info("Wrong family member!")
             return
     family_index = int(family_member) - 1
-    #logging.info(read_to_sv_dict)
     read_to_vars = read_to_var_list
     read_to_nons = read_to_non_list
     gl_index = 9
@@ -445,11 +356,9 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
         anchor_flag = 4
         phased_flag = 5
         break_flag = 6
-    # 处理read phasing+genetic phasing
-    # 使用遗传phasing确定基础锚点
+    # read phasing+genetic phasing
+    # generate phasing anchors
     for j in range(len(candidate_single_SV_gt_fam_ls[family_index])) :
-        #if j % 5000 == 0 :
-        #    logging.info("%d/%d"%(j,len(candidate_single_SV_gt_fam_ls[family_index])))
         if phase_type == 2 and phased_sv_haplotype_father[j][1] in [1,2,3] :
             continue
         fam_genotype_ls = []
@@ -461,16 +370,15 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
             fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][j][gl_index].split(",")[3:5]])
             fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][j][gl_index].split(",")[3:5]])
         candidate_single_SV_ls = candidate_single_SV_gt_fam_ls[family_index][j]
-        # 纯和
         if gt_homozygous(fam_genotype_ls[family_index]) :
             if phase_type == 1 :
-                # 如果phase孩子
-                # 0-基因型概率,1-phase状态,2-父母本来源,3-block序号,4-pos,5-type,6-变异reads列表,7-变异pos列表,8-无变异reads列表,9-无变异pos列表,10-phase得到的变异reads列表，11-phase得到的无变异reads列表
-                # 父母本来源：0-前一个基因来自父本，后一个基因来自母本；1-前一个基因来自母本，后一个基因来自父本
-                # 如果phase父母
-                # 0-基因型概率,1-phase状态,2-遗传单倍体去向,3-block序号,4-pos,5-type,6-变异reads列表,7-变异pos列表,8-无变异reads列表,9-无变异pos列表,10-phase得到的变异reads列表，11-phase得到的无变异reads列表
-                # 遗传单倍体去向：0-前一个基因遗传向孩子，1-后一个基因遗传向孩子
-                # phase状态：0-未phase,1-遗传phase ,2-关联phase,3-断点,4-read phase anchor,5-read phase sv,6-read phase断点,7-就近匹配的纯和
+                # in child phase
+                # 0-gt likehood,1-phase state,2-parental origin,3-block no,4-pos,5-type,6-sv reads list,7-sv pos list,8-no sv reads list,9-no sv pos list,10-phased sv reads list，11-phased no sv reads list
+                # parental origin：0-alleles from father and mother；1-alleles from mother and father
+                # in parent phase
+                # 0-gt likehood,1-phase state,2-haplotype destination,3-block no,4-pos,5-type,6-sv reads list,7-sv pos list,8-no sv reads list,9-no sv pos list,10-phased sv reads list，11-phased no sv reads list
+                # haplotype destination：0-first allele inherit to child，1-second allele inherit to child
+                # phasestate：0-no phase,1-inheritance phase ,2-linkage phase,3-break point,4-read phase anchor,5-read phase sv,6-read phase break point,7-matched by proximity
                 phased_sv_haplotype_father.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
                 phased_sv_haplotype_mother.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
             else :
@@ -497,8 +405,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     else :
                         phased_sv_haplotype_father[j] = [fam_genotype_ls[family_index][gen_source],anchor_flag,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]]
                         phased_sv_haplotype_mother[j] = [fam_genotype_ls[family_index][1-gen_source],anchor_flag,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]]
-                    #phased_sv_haplotype_father.append([fam_genotype_ls[0][gen_source],1,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],candidate_single_SV_ls[non_read_nameds_index].split(","),candidate_single_SV_ls[non_read_poss_index].split(",")])
-                    #phased_sv_haplotype_mother.append([fam_genotype_ls[0][1-gen_source],1,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],candidate_single_SV_ls[var_read_nameds_index].split(","),candidate_single_SV_ls[var_read_poss_index].split(","),[],[]])
                 else :
                     if phase_type == 1 :
                         hap_t = [fam_genotype_ls[family_index][gen_source],anchor_flag,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]]
@@ -512,27 +418,20 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     else :
                         phased_sv_haplotype_father[j] = [fam_genotype_ls[family_index][gen_source],anchor_flag,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]]
                         phased_sv_haplotype_mother[j] = [fam_genotype_ls[family_index][1-gen_source],anchor_flag,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]]
-                    #phased_sv_haplotype_father.append([fam_genotype_ls[0][gen_source],1,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],candidate_single_SV_ls[var_read_nameds_index].split(","),candidate_single_SV_ls[var_read_poss_index].split(","),[],[]])
-                    #phased_sv_haplotype_mother.append([fam_genotype_ls[0][1-gen_source],1,gen_source,block_no,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],candidate_single_SV_ls[non_read_nameds_index].split(","),candidate_single_SV_ls[non_read_poss_index].split(",")])
                 if phase_type == 1 :
                     block_no += 1      
-    #import sys
-    #logging.info("%s/%f/%f"%(chr,float(sys.getsizeof(phased_sv_haplotype_father)),float(sys.getsizeof(candidate_single_SV_gt_fam_ls))))
     phased_sv_haplotype_father_forward = copy.deepcopy(phased_sv_haplotype_father)
     phased_sv_haplotype_mother_forward = copy.deepcopy(phased_sv_haplotype_mother)
     phased_sv_haplotype_father_reverse = copy.deepcopy(phased_sv_haplotype_father)
     phased_sv_haplotype_mother_reverse = copy.deepcopy(phased_sv_haplotype_mother)
     homozygous_phased_num = 0
-    # 正向
+    # from front to back
     for sv_i in range(len(phased_sv_haplotype_father_forward)) :
-        #if sv_i % 5000 == 0 :
-        #    logging.info("%d/%d"%(sv_i,len(phased_sv_haplotype_father_forward)))
         if phase_type == 2 and phased_sv_haplotype_father_forward[sv_i][1] in [1,2,3] :
             continue
         genotype_ls = [float(x) for x in candidate_single_SV_gt_fam_ls[family_index][sv_i][gl_index].split(",")[3:5]]
         if gt_homozygous(genotype_ls) :
             if sv_i == 0:
-                #phased_sv_haplotype_father_forward[sv_i][1] = 3
                 pass
             elif ((len(phased_sv_haplotype_father_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0) and
                   (len(phased_sv_haplotype_mother_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_forward[sv_i][8]) == 0)) :
@@ -543,16 +442,12 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                         phased_sv_haplotype_father_forward[sv_i-1][1] = 6
                         phased_sv_haplotype_mother_forward[sv_i-1][1] = 6
             else :
-                #homozygous_phased_num += 1
                 phased_sv_haplotype_father_forward[sv_i][1] = phased_flag
                 phased_sv_haplotype_mother_forward[sv_i][1] = phased_flag
             continue
         if phased_sv_haplotype_father_forward[sv_i][1] in [0,4] :
-            # 确定基因型父母本来源
-            # 如果父母本的基因型确定结果有冲突，可能需要纠错
             if phased_sv_haplotype_father_forward[sv_i][1] == 0 and (len(phased_sv_haplotype_father_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0) and (len(phased_sv_haplotype_mother_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_forward[sv_i][8]) == 0) :
                 if sv_i == 0:
-                    #phased_sv_haplotype_father_forward[sv_i][1] = 3
                     pass
                 elif ((len(phased_sv_haplotype_father_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 and phased_sv_haplotype_father_forward[sv_i-1][1] in [2,5]) and
                       (len(phased_sv_haplotype_mother_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_forward[sv_i][8]) == 0 and phased_sv_haplotype_mother_forward[sv_i-1][1] in [2,5])) :
@@ -576,10 +471,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     phased_sv_haplotype_mother_forward[sv_i][8] = candidate_single_SV_ls[non_read_nameds_index].split(",") if candidate_single_SV_ls[non_read_nameds_index] != '' else []
                     phased_sv_haplotype_mother_forward[sv_i][9] = candidate_single_SV_ls[non_read_poss_index].split(",") if candidate_single_SV_ls[non_read_poss_index] != '' else []
                 block_no += 1
-            # 有可能杂合的位点处同时变异或同时非变异，这种情况可能需要处理
             elif len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 or len(phased_sv_haplotype_father_forward[sv_i][6]) / len(phased_sv_haplotype_father_forward[sv_i][8]) >= 1 :
-                #if len(phased_sv_haplotype_father_forward[sv_i][6]) / len(phased_sv_haplotype_father_forward[sv_i][8]) <= 1.5 :
-                #    logging.info(phased_sv_haplotype_father_forward[sv_i])
                 phased_sv_haplotype_father_forward[sv_i][1] = phased_flag
                 phased_sv_haplotype_mother_forward[sv_i][1] = phased_flag
                 phased_sv_haplotype_father_forward[sv_i][3] = block_no
@@ -603,8 +495,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     phased_sv_haplotype_mother_forward[sv_i][0] = genotype_ls[0]
                     phased_sv_haplotype_mother_forward[sv_i][2] = 1
             else :
-                #if len(phased_sv_haplotype_father_forward[sv_i][8]) != 0 and len(phased_sv_haplotype_father_forward[sv_i][6]) / len(phased_sv_haplotype_father_forward[sv_i][8]) > 0.7 :
-                #    logging.info(phased_sv_haplotype_father_forward[sv_i])
                 phased_sv_haplotype_father_forward[sv_i][1] = phased_flag
                 phased_sv_haplotype_mother_forward[sv_i][1] = phased_flag
                 phased_sv_haplotype_father_forward[sv_i][3] = block_no
@@ -640,10 +530,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
             fa_sv_read_poss = phased_sv_haplotype_father_forward[sv_i][7]
             mo_sv_read_names = phased_sv_haplotype_mother_forward[sv_i][8]
             mo_sv_read_poss = phased_sv_haplotype_mother_forward[sv_i][9]
-        #next_sv_read_names = set()
-        #next_sv_read_poss = set()
-        #if phase_type == 2 :
-        #    logging.info(len(fa_sv_read_names))
         for read_j in range(len(fa_sv_read_names)) :
             read_name = fa_sv_read_names[read_j]
             read_pos = int(fa_sv_read_poss[read_j])
@@ -675,7 +561,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                 logging.info(len(mo_sv_read_poss))
                 logging.info(phased_sv_haplotype_mother_forward[sv_i])
                 logging.info(candidate_single_SV_gt_fam_ls[family_index][sv_i])
-            #logging.info("%d/%d"%(len(mo_sv_read_names),len(mo_sv_read_poss)))
             read_pos = int(mo_sv_read_poss[read_j])
             if read_name in read_to_vars[ceil(read_pos/read_pos_interval)-1][0] :
                 support_svs = read_to_vars[ceil(read_pos/read_pos_interval)-1][1][read_to_vars[ceil(read_pos/read_pos_interval)-1][0].index(read_name)]
@@ -697,17 +582,13 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_mother_forward[sv][8].append(read_name)
                             phased_sv_haplotype_mother_forward[sv][3] = block_no  
                         phased_sv_haplotype_mother_forward[sv][11].append(read_name)
-    #logging.info("%d/%s/%d"%(phase_type,chr,homozygous_phased_num))
-    # 反向
+    # from bask to font
     for sv_i in range(len(phased_sv_haplotype_father_reverse)-1,-1,-1) :
-        #if sv_i % 5000 == 0 :
-        #    logging.info("%d/%d"%(sv_i,len(phased_sv_haplotype_father_reverse)))
         if phase_type == 2 and phased_sv_haplotype_father_reverse[sv_i][1] in [1,2,3] :
             continue
         genotype_ls = [float(x) for x in candidate_single_SV_gt_fam_ls[family_index][sv_i][gl_index].split(",")[3:5]]
         if gt_homozygous(genotype_ls) :
             if sv_i == len(phased_sv_haplotype_father_reverse)-1:
-                #phased_sv_haplotype_father_reverse[sv_i][1] = 3
                 pass
             elif ((len(phased_sv_haplotype_father_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_father_reverse[sv_i][8]) == 0) and
                   (len(phased_sv_haplotype_mother_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_reverse[sv_i][8]) == 0)) :
@@ -722,11 +603,8 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                 phased_sv_haplotype_mother_reverse[sv_i][1] = phased_flag
             continue
         if phased_sv_haplotype_father_reverse[sv_i][1] in [0,4] :
-            # 确定基因型父母本来源
-            # 如果父母本的基因型确定结果有冲突，可能需要纠错
             if phased_sv_haplotype_father_reverse[sv_i][1] == 0 and (len(phased_sv_haplotype_father_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_father_reverse[sv_i][8]) == 0) and (len(phased_sv_haplotype_mother_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_reverse[sv_i][8]) == 0) :
                 if sv_i == len(phased_sv_haplotype_father_reverse)-1:
-                    #phased_sv_haplotype_father_reverse[sv_i][1] = 3
                     pass
                 elif ((len(phased_sv_haplotype_father_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_father_reverse[sv_i][8]) == 0 and phased_sv_haplotype_father_reverse[sv_i+1][1] in [2,5]) and
                       (len(phased_sv_haplotype_mother_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_mother_reverse[sv_i][8]) == 0 and phased_sv_haplotype_mother_reverse[sv_i+1][1] in [2,5])) :
@@ -750,10 +628,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     phased_sv_haplotype_mother_reverse[sv_i][8] = candidate_single_SV_ls[non_read_nameds_index].split(",") if candidate_single_SV_ls[non_read_nameds_index] != '' else []
                     phased_sv_haplotype_mother_reverse[sv_i][9] = candidate_single_SV_ls[non_read_poss_index].split(",") if candidate_single_SV_ls[non_read_poss_index] != '' else []
                 block_no += 1
-            # 有可能杂合的位点处同时变异或同时非变异，这种情况可能需要处理
             if len(phased_sv_haplotype_father_reverse[sv_i][8]) == 0 or len(phased_sv_haplotype_father_reverse[sv_i][6]) / len(phased_sv_haplotype_father_reverse[sv_i][8]) >= 1 :
-                #if len(phased_sv_haplotype_father_reverse[sv_i][6]) / len(phased_sv_haplotype_father_reverse[sv_i][8]) <= 1.5 :
-                #    logging.info(phased_sv_haplotype_father_reverse[sv_i])
                 phased_sv_haplotype_father_reverse[sv_i][1] = phased_flag
                 phased_sv_haplotype_mother_reverse[sv_i][1] = phased_flag
                 phased_sv_haplotype_father_reverse[sv_i][3] = block_no
@@ -777,8 +652,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                     phased_sv_haplotype_mother_reverse[sv_i][0] = genotype_ls[0]
                     phased_sv_haplotype_mother_reverse[sv_i][2] = 1
             else :
-                #if len(phased_sv_haplotype_father_reverse[sv_i][8]) != 0 and len(phased_sv_haplotype_father_reverse[sv_i][6]) / len(phased_sv_haplotype_father_reverse[sv_i][8]) > 0.7 :
-                #    logging.info(phased_sv_haplotype_father_reverse[sv_i])
                 phased_sv_haplotype_father_reverse[sv_i][1] = phased_flag
                 phased_sv_haplotype_mother_reverse[sv_i][1] = phased_flag
                 phased_sv_haplotype_father_reverse[sv_i][3] = block_no
@@ -814,10 +687,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
             fa_sv_read_poss = phased_sv_haplotype_father_reverse[sv_i][7]
             mo_sv_read_names = phased_sv_haplotype_mother_reverse[sv_i][8]
             mo_sv_read_poss = phased_sv_haplotype_mother_reverse[sv_i][9]
-        #next_sv_read_names = set()
-        #next_sv_read_poss = set()
-        # key为sv索引值，value为二元列表，其中第一元为支持read name列表，第二元为不支持read name列表
-        #support_reads_ls = {}
         for read_j in range(len(fa_sv_read_names)) :
             read_name = fa_sv_read_names[read_j]
             read_pos = int(fa_sv_read_poss[read_j])
@@ -831,10 +700,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_father_reverse[sv][6].append(read_name)
                             phased_sv_haplotype_father_reverse[sv][3] = block_no
                         phased_sv_haplotype_father_reverse[sv][10].append(read_name)
-                        #if sv not in support_reads_ls :
-                        #    support_reads_ls[sv] = [[read_name],[]]
-                        #else :
-                        #    support_reads_ls[sv][0].append(read_name)
             elif read_name in read_to_nons[ceil(read_pos/read_pos_interval)-1][0] :
                 support_svs = read_to_nons[ceil(read_pos/read_pos_interval)-1][1][read_to_nons[ceil(read_pos/read_pos_interval)-1][0].index(read_name)]
                 for sv in support_svs :
@@ -845,26 +710,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_father_reverse[sv][8].append(read_name)
                             phased_sv_haplotype_father_reverse[sv][3] = block_no
                         phased_sv_haplotype_father_reverse[sv][11].append(read_name)
-                        #if sv not in support_reads_ls :
-                        #    support_reads_ls[sv] = [[],[read_name]]
-                        #else :
-                        #    support_reads_ls[sv][1].append(read_name)
-        #for sv in support_reads_ls.keys() :
-        #    if abs(len(support_reads_ls[sv][0])-len(support_reads_ls[sv][1]))/max(len(support_reads_ls[sv][0]),len(support_reads_ls[sv][1])) <= 0.5 and len(support_reads_ls[sv][0]) != 0 and len(support_reads_ls[sv][1]) != 0 :
-        #        #logging.info("%d/%d"%(len(support_reads_ls[sv][0]),len(support_reads_ls[sv][1])))
-        #        if len(support_reads_ls[sv][0]) <= len(support_reads_ls[sv][1]) :
-        #            for read_name in support_reads_ls[sv][0] :
-        #                phased_sv_haplotype_father_reverse[sv][6].remove(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][10].remove(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][8].append(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][11].append(read_name)
-        #        else :
-        #            for read_name in support_reads_ls[sv][1] :
-        #                phased_sv_haplotype_father_reverse[sv][8].remove(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][11].remove(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][6].append(read_name)
-        #                phased_sv_haplotype_father_reverse[sv][10].append(read_name)
-        #support_reads_ls = {}
         for read_j in range(len(mo_sv_read_names)) :
             read_name = mo_sv_read_names[read_j]
             read_pos = int(mo_sv_read_poss[read_j])
@@ -878,10 +723,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_mother_reverse[sv][6].append(read_name)
                             phased_sv_haplotype_mother_reverse[sv][3] = block_no
                         phased_sv_haplotype_mother_reverse[sv][10].append(read_name)
-                        #if sv not in support_reads_ls :
-                        #    support_reads_ls[sv] = [[read_name],[]]
-                        #else :
-                        #    support_reads_ls[sv][0].append(read_name)
             elif read_name in read_to_nons[ceil(read_pos/read_pos_interval)-1][0] :
                 support_svs = read_to_nons[ceil(read_pos/read_pos_interval)-1][1][read_to_nons[ceil(read_pos/read_pos_interval)-1][0].index(read_name)]
                 for sv in support_svs :
@@ -892,25 +733,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_mother_reverse[sv][8].append(read_name)
                             phased_sv_haplotype_mother_reverse[sv][3] = block_no
                         phased_sv_haplotype_mother_reverse[sv][11].append(read_name)
-                        #if sv not in support_reads_ls :
-                        #    support_reads_ls[sv] = [[],[read_name]]
-                        #else :
-                        #    support_reads_ls[sv][1].append(read_name)
-        #for sv in support_reads_ls.keys() :
-        #    if abs(len(support_reads_ls[sv][0])-len(support_reads_ls[sv][1]))/max(len(support_reads_ls[sv][0]),len(support_reads_ls[sv][1])) <= 0.5 and len(support_reads_ls[sv][0]) != 0 and len(support_reads_ls[sv][1]) != 0 :
-        #        #logging.info("%d/%d"%(len(support_reads_ls[sv][0]),len(support_reads_ls[sv][1])))
-        #        if len(support_reads_ls[sv][0]) <= len(support_reads_ls[sv][1]) :
-        #            for read_name in support_reads_ls[sv][0] :
-        #                phased_sv_haplotype_mother_reverse[sv][6].remove(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][10].remove(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][8].append(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][11].append(read_name)
-        #        else :
-        #            for read_name in support_reads_ls[sv][1] :
-        #                phased_sv_haplotype_mother_reverse[sv][8].remove(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][11].remove(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][6].append(read_name)
-        #                phased_sv_haplotype_mother_reverse[sv][10].append(read_name)
 
     # 整合父本/整合遗传单倍体
     sv_i = 0
@@ -927,7 +749,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                 phased_sv_haplotype_father[sv_i] = copy.deepcopy(phased_sv_haplotype_father_reverse[sv_i])
             elif phased_sv_haplotype_father_forward[sv_i][1] in [2,3,4,5,6] and phased_sv_haplotype_father_reverse[sv_i][1] in [2,3,4,5,6] :
                 if abs(phased_sv_haplotype_father_forward[sv_i][0]-phased_sv_haplotype_father_reverse[sv_i][0]) > consistency_threshold :
-                    # 理论上这里需要添加正反向结果不一致的处理过程，但是根据实际测试，几乎没有这种情况，所以不再处理
                     inconsistent_num += 1
                 phased_sv_haplotype_father[sv_i] = copy.deepcopy(phased_sv_haplotype_father_forward[sv_i])
         else :
@@ -951,7 +772,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
         if phased_sv_haplotype_father_forward[sv_i][1] in [4,5] and phased_sv_haplotype_father_reverse[sv_i][1] in [4,5] and phased_sv_haplotype_father_forward[sv_i][1] != phased_sv_haplotype_father_reverse[sv_i][1] :
             phased_sv_haplotype_father[sv_i][1] = 5
         sv_i += 1
-    # 整合母本/整合弃绝单倍体
+    # integrating the maternal/discarding haploids
     sv_i = 0
     inconsistent_num = 0
     while(sv_i <= len(phased_sv_haplotype_mother_forward)-1) :
@@ -989,7 +810,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
         if phased_sv_haplotype_mother_forward[sv_i][1] in [4,5] and phased_sv_haplotype_mother_reverse[sv_i][1] in [4,5] and phased_sv_haplotype_mother_forward[sv_i][1] != phased_sv_haplotype_mother_reverse[sv_i][1] :
             phased_sv_haplotype_mother[sv_i][1] = 5
         sv_i += 1
-    # 确定纯和
+    # homozygous
     for sv_i in range(len(phased_sv_haplotype_father)) :
         genotype_ls = [float(x) for x in candidate_single_SV_gt_fam_ls[family_index][sv_i][gl_index].split(",")[3:5]]
         if phased_sv_haplotype_father[sv_i][1] == 0 :
@@ -1009,11 +830,10 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                 phased_sv_haplotype_father[sv_i][0] = min(genotype_ls)
                 phased_sv_haplotype_mother[sv_i][0] = max(genotype_ls)
 
-    # 以下处理只考虑单独的杂合
     if phase_type == 2 :
         _ = recalculate_block_no(phased_sv_haplotype_father, phased_sv_haplotype_mother)
     
-    # 对没有phase的变异，基于就近匹配的方式确定
+    # for sv not by phasing, the nearest matching method is used to determine the phase
     for sv_i in range(len(phased_sv_haplotype_father)) :
         if phased_sv_haplotype_father[sv_i][1] == 0 and phased_sv_haplotype_mother[sv_i][1] == 0 :
             fam_genotype_ls = []
@@ -1036,7 +856,6 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
 
 def make_family_block_record(phased_sv_haplotype_child_father, phased_sv_haplotype_father_inher, phased_sv_haplotype_mother_inher) :
     block_record_ls = [[],[],[]]
-    # 记录子代block信息
     start_pos = -1
     pre_block_no = 0
     for sv_i in range(len(phased_sv_haplotype_child_father)) :
@@ -1048,24 +867,20 @@ def make_family_block_record(phased_sv_haplotype_child_father, phased_sv_haploty
         if phased_sv_haplotype_child_father[sv_i][3] == 0 :
             if start_pos != -1 :
                 block_record_ls[0].append([pre_block_no,start_pos,sv_i-1])
-                #logging.info("%d/%d/%d/%d"%(start_pos,sv_i-1,phased_sv_haplotype_child_father[start_pos][3],phased_sv_haplotype_child_father[sv_i-1][3]))
                 start_pos = -1
                 pre_block_no = 0
             continue
         elif phased_sv_haplotype_child_father[sv_i][3] == -1 :
             if start_pos != -1 :
                 block_record_ls[0].append([pre_block_no,start_pos,sv_i-1])
-                #logging.info("%d/%d/%d/%d"%(start_pos,sv_i-1,phased_sv_haplotype_child_father[start_pos][3],phased_sv_haplotype_child_father[sv_i-1][3]))
                 start_pos = -1
                 pre_block_no = 0
         elif phased_sv_haplotype_child_father[sv_i][3] > pre_block_no :
             if start_pos != -1 :
                 block_record_ls[0].append([pre_block_no,start_pos,sv_i-1])
-                #logging.info("%d/%d/%d/%d"%(start_pos,sv_i-1,phased_sv_haplotype_child_father[start_pos][3],phased_sv_haplotype_child_father[sv_i-1][3]))
             start_pos = sv_i
             pre_block_no = phased_sv_haplotype_child_father[sv_i][3]
-        #logging.info("%d/%d/%d/%d"%(start_pos,sv_i,phased_sv_haplotype_child_father[start_pos][3],phased_sv_haplotype_child_father[sv_i-1][3]))
-    # 记录父本block信息
+    # father block
     start_pos = -1
     pre_block_no = 0
     for sv_i in range(len(phased_sv_haplotype_father_inher)) :
@@ -1090,7 +905,7 @@ def make_family_block_record(phased_sv_haplotype_child_father, phased_sv_haploty
                 block_record_ls[1].append([pre_block_no,start_pos,sv_i-1])
             start_pos = sv_i
             pre_block_no = phased_sv_haplotype_father_inher[sv_i][3]
-    # 记录母本block信息
+    # mother block
     start_pos = -1
     pre_block_no = 0
     for sv_i in range(len(phased_sv_haplotype_mother_inher)) :
@@ -1134,7 +949,7 @@ def genetic_phasing_optimize(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
     if family_mode != "M1" :
         return
     gl_index = 9
-    # 使用父母本pt=1的phase信息优化子代，使用子代pt=1的phase信息优化父母本
+    # optimize child by pt=1 from parents, optimize parents by pt=1 from child
     change_num_ls = [0,0,0,0]
     for sv_i in range(len(candidate_single_SV_gt_fam_ls[0])) :
         fam_genotype_ls = []
@@ -1170,17 +985,14 @@ def genetic_phasing_optimize(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 change_haplotype_res(phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo,False,block_no,2,0)
             else :
                 change_haplotype_res(phased_sv_haplotype_mother_inher,phased_sv_haplotype_mother_forgo,True,block_no,2,0)
-    # 使用pt=2的phase信息优化家系的phase效果
+    # optimize trio by pt=1
     exchange_happend_flag = True
-    #exchange_num = 0
     while(exchange_happend_flag) :
         exchange_num = 0
         exchange_happend_flag = False
         block_record_ls = make_family_block_record(phased_sv_haplotype_child_father, phased_sv_haplotype_father_inher, phased_sv_haplotype_mother_inher)
-        # 使用父母本pt=2的phase信息优化子代
         for b_i in range(len(block_record_ls[0])-1) :
             if phased_sv_haplotype_father_inher[block_record_ls[0][b_i][2]][3] == phased_sv_haplotype_father_inher[block_record_ls[0][b_i+1][1]][3] and phased_sv_haplotype_father_inher[block_record_ls[0][b_i][2]][3] not in [-1,0]:
-                #logging.info("%d/%d/%d/%d"%(block_record_ls[0][b_i][2],block_record_ls[0][b_i+1][1],phased_sv_haplotype_child_father[block_record_ls[0][b_i][2]][3],phased_sv_haplotype_child_father[block_record_ls[0][b_i+1][1]][3]))
                 exchange_happend_flag = True
                 exchange_num += 1
                 new_block_no = block_record_ls[0][b_i][0]
@@ -1219,7 +1031,7 @@ def genetic_phasing_optimize(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
         _ = recalculate_block_no(phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo)
         _ = recalculate_block_no(phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo)
         block_record_ls = make_family_block_record(phased_sv_haplotype_child_father, phased_sv_haplotype_father_inher, phased_sv_haplotype_mother_inher)
-        # 使用子代pt=2的phase信息优化父本
+        # optimize father by pt=2 from child
         for b_i in range(len(block_record_ls[1])-1) :
             if phased_sv_haplotype_child_father[block_record_ls[1][b_i][2]][3] == phased_sv_haplotype_child_father[block_record_ls[1][b_i+1][1]][3] and phased_sv_haplotype_child_father[block_record_ls[1][b_i][2]][3] not in [-1,0]:
                 exchange_happend_flag = True
@@ -1238,7 +1050,7 @@ def genetic_phasing_optimize(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                     phased_sv_haplotype_father_forgo[j][1] = 5
                     phased_sv_haplotype_father_inher[j][3] = new_block_no
                     phased_sv_haplotype_father_forgo[j][3] = new_block_no
-        # 使用子代pt=2的phase信息优化母本
+        # optimize mother by pt=2 from child
         for b_i in range(len(block_record_ls[2])-1) :
             if phased_sv_haplotype_child_mother[block_record_ls[2][b_i][2]][3] == phased_sv_haplotype_child_mother[block_record_ls[2][b_i+1][1]][3] and phased_sv_haplotype_child_mother[block_record_ls[2][b_i][2]][3] not in [-1,0]:
                 exchange_happend_flag = True
@@ -1260,8 +1072,6 @@ def genetic_phasing_optimize(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
         _ = recalculate_block_no(phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother)
         _ = recalculate_block_no(phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo)
         _ = recalculate_block_no(phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo)
-        #logging.info("%s/%d"%(chr,exchange_num))
-        #break
 
 def evaluate_phasing(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_father, phased_sv_haplotype_mother, family_mode, family_member) :
     family_index = int(family_member) - 1
@@ -1297,12 +1107,10 @@ def verify_haplotype_consistency(chr, candidate_single_SV_gt_fam_ls, phased_sv_h
     if family_member == "1" :
         for sv_i in range(0,100) :
             if abs(phased_sv_haplotype_child_father[sv_i][0]-phased_sv_haplotype_father_inher[sv_i][0]) > consistency_threshold or abs(phased_sv_haplotype_child_mother[sv_i][0]-phased_sv_haplotype_mother_inher[sv_i][0]) > consistency_threshold :
-                #logging.info("%s/%f/%f/%f/%f/%d"%(chr,phased_sv_haplotype_child_father[sv_i][0],phased_sv_haplotype_father_inher[sv_i][0],phased_sv_haplotype_child_mother[sv_i][0],phased_sv_haplotype_mother_inher[sv_i][0],sv_i))
                 logging.info("%f/%f/%f/%f/%f/%f"%(phased_sv_haplotype_child_father[sv_i][0],phased_sv_haplotype_child_mother[sv_i][0],phased_sv_haplotype_father_inher[sv_i][0],phased_sv_haplotype_father_forgo[sv_i][0],phased_sv_haplotype_mother_inher[sv_i][0],phased_sv_haplotype_mother_forgo[sv_i][0]))
                 logging.info("%s/%s/%s/%s"%(str(phased_sv_haplotype_child_father[sv_i]),str(phased_sv_haplotype_child_mother[sv_i]),str(phased_sv_haplotype_father_inher[sv_i]),str(phased_sv_haplotype_mother_inher[sv_i])))
                 logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][sv_i]),str(candidate_single_SV_gt_fam_ls[1][sv_i]),str(candidate_single_SV_gt_fam_ls[2][sv_i])))
 
-# 将phasing结果转移到变异结果列表中
 def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, phase_flag, parents_phasing) :
     gt_index = 8
     gl_index = 9
@@ -1323,20 +1131,15 @@ def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
                 else :
                     single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
                     single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":."
-                    #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + ",.,.," + ",".join(single_SV_gt[gl_index].split(",")[5:])
                     single_SV_gt = candidate_single_SV_gt_fam_ls[2][j]
                     single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":."
-                    #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:3]) + ",.,.," + ",".join(single_SV_gt[gl_index].split(",")[5:])
             else :
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":./."
-                #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:5]) + ",".join(single_SV_gt[gl_index].split(",")[5:]) + ",0"
                 single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":./."
-                #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:5]) + ",".join(single_SV_gt[gl_index].split(",")[5:]) + ",0"
                 single_SV_gt = candidate_single_SV_gt_fam_ls[2][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":./."
-                #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:5]) + ",".join(single_SV_gt[gl_index].split(",")[5:]) + ",0"
     elif family_mode == "M2" :
         family_member_ls = ["1","2"]
         for j in range(len(candidate_single_SV_gt_fam_ls[0])) :
@@ -1354,10 +1157,8 @@ def phasing_candidate_fam_SV(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplo
             else :
                 single_SV_gt = candidate_single_SV_gt_fam_ls[0][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":./."
-                #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:5]) + ",".join(single_SV_gt[gl_index].split(",")[5:]) + ",0"
                 single_SV_gt = candidate_single_SV_gt_fam_ls[1][j]
                 single_SV_gt[gt_index] = single_SV_gt[gt_index].split(":")[0] + ":./."
-                #single_SV_gt[gl_index] = ",".join(single_SV_gt[gl_index].split(",")[0:5]) + ",".join(single_SV_gt[gl_index].split(",")[5:]) + ",0"
 
 def correct_gt_phasing_2_calling(candidate_single_SV,haplotype_father_single,haplotype_mother_single,f_prob,m_prob) :
     len_index = 3
@@ -1406,7 +1207,6 @@ def phasing_sv_error_detection_correction(chr, candidate_single_SV_gt_fam_ls, ph
                     if round(GL_P_M_1) == 0 and round(haplotype_mother[j][0]) == 1 and abs(GL_P_M_1-haplotype_mother[j][0]) >= change_threshold:
                         is_change_m_flag = True
                 if (is_change_f_flag or is_change_m_flag) and abs(int(candidate_single_SV_gt_fam_ls[i][j][len_index])) > 100:
-                    #logging.info(candidate_single_SV_gt_fam_ls[i][j])
                     if is_change_f_flag and not is_change_m_flag :
                         f_prob = GL_P_F_1
                         m_prob = haplotype_mother[j][0]
@@ -1416,21 +1216,10 @@ def phasing_sv_error_detection_correction(chr, candidate_single_SV_gt_fam_ls, ph
                     else :
                         f_prob = GL_P_F_1
                         m_prob = GL_P_M_1
-                    #logging.info("%f/%f/%f"%(max((1-f_prob)*(1-m_prob),pow(0.1,100)), max((1-f_prob)*m_prob+f_prob*(1-m_prob),pow(0.1,100)), max(f_prob*m_prob,pow(0.1,100))))
                     correct_gt_phasing_2_calling(candidate_single_SV_gt_fam_ls[i][j],haplotype_father[j],haplotype_mother[j],f_prob,m_prob)
                     continue
-                #if haplotype_father[j][0]<0.5 and abs(GL_P_F_1-haplotype_father[j][0])<=bias_threshold and round(GL_P_F_1)==round(haplotype_father[j][0]) and len(haplotype_father[j][11])>minimum_support_reads_list[i] :
-                #    if round(GL_P_M_1) == 0 and round(haplotype_mother[j][0]) == 1 and abs(GL_P_F_1-GL_P_M_1)<=bias_threshold and len(haplotype_mother[j][11])>minimum_support_reads_list[i] :
-                #        f_prob,m_prob = haplotype_father[j][0],GL_P_M_1
-                #        correct_gt_phasing_2_calling(candidate_single_SV_gt_fam_ls[i][j],haplotype_father[j],haplotype_mother[j],f_prob,m_prob)
-                #        continue
-                #if haplotype_mother[j][0]<0.5 and abs(GL_P_M_1-haplotype_mother[j][0])<=bias_threshold and round(GL_P_M_1)==round(haplotype_mother[j][0]) and len(haplotype_mother[j][11])>minimum_support_reads_list[i] :
-                #    if round(GL_P_F_1) == 0 and round(haplotype_father[j][0]) == 1 and abs(GL_P_F_1-GL_P_M_1)<=bias_threshold and len(haplotype_father[j][11])>minimum_support_reads_list[i] :
-                #        f_prob,m_prob = GL_P_F_1,haplotype_mother[j][0]
-                #        correct_gt_phasing_2_calling(candidate_single_SV_gt_fam_ls[i][j],haplotype_father[j],haplotype_mother[j],f_prob,m_prob)
-                #        continue
                 
-# 针对纯和变异，按照变异的DV和DR在两个hap上的分布，修正现有的GT
+# for homozygous svs, GT is corrected according to the distribution of DV and DR on the two haps
 def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls, phased_sv_haplotype_child_father, phased_sv_haplotype_child_mother, phased_sv_haplotype_father_inher, phased_sv_haplotype_father_forgo, phased_sv_haplotype_mother_inher, phased_sv_haplotype_mother_forgo, family_mode, phase_flag, parents_phasing, minimum_support_reads_list) :
     gl_index = 9
     gt_index = 8
@@ -1439,16 +1228,6 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
     correction_rate_threshold = 0.9
     change_num = 0
     for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
-    #    #if candidate_single_SV_gt_fam_ls[0][i][0] == "1" and int(candidate_single_SV_gt_fam_ls[0][i][2]) in [1223680,172663271,202173903,241846345,24074635,74632717,1056785,82321790,1024751,19799778] :
-    #    #if int(candidate_single_SV_gt_fam_ls[0][i][2]) in [1223680,172663271,202173903,241846345,24074635,74632717,1056785,82321790,1024751,19799778] :
-    #    if int(candidate_single_SV_gt_fam_ls[0][i][2]) in [1223725,4125844,3311830,154051250,73656,41346363] :
-    #        #logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-    #        #logging.info("phased_sv_haplotype_child_father:%s"%(phased_sv_haplotype_child_father[i]))
-    #        #logging.info("phased_sv_haplotype_child_mother:%s"%(phased_sv_haplotype_child_mother[i]))
-    #        father_len_ls = [len(x) for x in phased_sv_haplotype_child_father[i][6:]]
-    #        logging.info("%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),str(father_len_ls)))
-    #        mother_len_ls = [len(x) for x in phased_sv_haplotype_child_mother[i][6:]]
-    #        logging.info("%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),str(mother_len_ls)))
         if candidate_single_SV_gt_fam_ls[0][i][gt_index][0:3] == "1/1" :
             DR,DV = [int(float(x)) for x in candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[6:8]]
             if DV == 0 :
@@ -1479,7 +1258,7 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
                     phased_sv_haplotype_child_father[i][9] = candidate_single_SV_gt_fam_ls[0][i][17].split(",")
                     change_num += 1
             else :
-                # 父本有变异，母本无变异
+                # sv in father，no sv in mother
                 if len(phased_sv_haplotype_child_father[i][6]) / DV > correction_rate_threshold and len(phased_sv_haplotype_child_mother[i][8]) / DR > correction_rate_threshold :
                     phased_sv_haplotype_child_father[i][0] = max(phased_sv_haplotype_child_father[i][0],phased_sv_haplotype_child_mother[i][0])
                     phased_sv_haplotype_child_mother[i][0] = 0
@@ -1492,7 +1271,7 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
                     phased_sv_haplotype_child_mother[i][8] = candidate_single_SV_gt_fam_ls[0][i][16].split(",")
                     phased_sv_haplotype_child_mother[i][9] = candidate_single_SV_gt_fam_ls[0][i][17].split(",")
                     change_num += 1
-                # 母本有变异，父本无变异
+                # sv in mother，no sv in father
                 if len(phased_sv_haplotype_child_mother[i][6]) / DV > correction_rate_threshold and len(phased_sv_haplotype_child_father[i][8]) / DR > correction_rate_threshold :
                     phased_sv_haplotype_child_mother[i][0] = max(phased_sv_haplotype_child_father[i][0],phased_sv_haplotype_child_mother[i][0])
                     phased_sv_haplotype_child_father[i][0] = 0
@@ -1506,20 +1285,10 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
                     phased_sv_haplotype_child_father[i][9] = candidate_single_SV_gt_fam_ls[0][i][17].split(",")
                     change_num += 1
         
-        #if candidate_single_SV_gt_fam_ls[0][i][8][0:3] in ["0/1","1/0"] :
-        #    father_len_ls = [len(x) for x in phased_sv_haplotype_child_father[i][6:]]
-        #    logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),phased_sv_haplotype_child_father[i][0],str(father_len_ls)))
-        #    mother_len_ls = [len(x) for x in phased_sv_haplotype_child_mother[i][6:]]
-        #    logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),phased_sv_haplotype_child_mother[i][0],str(mother_len_ls)))
-        
         if candidate_single_SV_gt_fam_ls[0][i][8][0:3] == "0/0":
             log_flag = False
             DR,DV = [int(float(x)) for x in candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[6:8]]
-            #if int(candidate_single_SV_gt_fam_ls[0][i][2]) in [4138124,4392691,4392846,4393269,236408614,3319350,50600787,118851589,121149112,145705014,236397404,241919303,194664077,196421555] :
-            #    log_flag = True
             if len(phased_sv_haplotype_child_father[i][10]) >= minimum_support_reads_list[0]/2 :
-            #if len(phased_sv_haplotype_child_father[i][10]) > 0 :
-                #log_flag = True
                 phased_sv_haplotype_child_father[i][0] = 1
                 candidate_single_SV_gt_fam_ls[0][i][gt_index] = "1/0:1|0"
                 gl_split_ls = candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")
@@ -1532,7 +1301,6 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
                 candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
                 change_num += 1
             elif len(phased_sv_haplotype_child_mother[i][10]) >= minimum_support_reads_list[0]/2 :
-                #log_flag = True
                 phased_sv_haplotype_child_mother[i][0] = 1
                 candidate_single_SV_gt_fam_ls[0][i][gt_index] = "1/0:0|1"
                 gl_split_ls = candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")
@@ -1544,50 +1312,7 @@ def correct_gt_signal_haplotype_distribution(chr, candidate_single_SV_gt_fam_ls,
                 candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
                 candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
                 change_num += 1
-    
-            #elif DR != 0 and len(phased_sv_haplotype_child_mother[i][11])/DR >= correction_rate_threshold and len(phased_sv_haplotype_child_mother[i][11]) >= 3*minimum_support_reads_list[0] and len(phased_sv_haplotype_child_father[i][10]) > 0:
-            #    if max(len(phased_sv_haplotype_child_father[6]),len(phased_sv_haplotype_child_mother[6])) < minimum_support_reads_list[0]/2 :
-            #        continue
-            #    if i-1>=0 and candidate_single_SV_gt_fam_ls[0][i][2] == candidate_single_SV_gt_fam_ls[0][i-1][2] :
-            #        continue
-            #    if i+1<=len(candidate_single_SV_gt_fam_ls[0][i])-1 and candidate_single_SV_gt_fam_ls[0][i][2] == candidate_single_SV_gt_fam_ls[0][i+1][2] :
-            #        continue
-            #    phased_sv_haplotype_child_father[i][0] = 1
-            #    candidate_single_SV_gt_fam_ls[0][i][gt_index] = "1/0:1|0"
-            #    gl_split_ls = candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")
-            #    _, GL_P, _, _, GQ, QUAL = cal_GL_2(len(phased_sv_haplotype_child_father[i][11]), len(phased_sv_haplotype_child_father[i][10]))
-            #    gl_split_ls[4] = str(min(float(gl_split_ls[3]),float(gl_split_ls[4])))
-            #    gl_split_ls[3] = str(GL_P)
-            #    candidate_single_SV_gt_fam_ls[0][i][gl_index] = ",".join(gl_split_ls)
-            #    candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
-            #    candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
-            #elif DR != 0 and len(phased_sv_haplotype_child_father[i][11])/DR >= correction_rate_threshold and len(phased_sv_haplotype_child_father[i][11]) >= 3*minimum_support_reads_list[0] and len(phased_sv_haplotype_child_mother[i][10]) > 0:
-            #    #log_flag = True
-            #    if max(len(phased_sv_haplotype_child_father[6]),len(phased_sv_haplotype_child_mother[6])) < minimum_support_reads_list[0]/2 :
-            #        continue
-            #    if i-1>=0 and candidate_single_SV_gt_fam_ls[0][i][2] == candidate_single_SV_gt_fam_ls[0][i-1][2] :
-            #        continue
-            #    if i+1<=len(candidate_single_SV_gt_fam_ls[0][i])-1 and candidate_single_SV_gt_fam_ls[0][i][2] == candidate_single_SV_gt_fam_ls[0][i+1][2] :
-            #        continue
-            #    phased_sv_haplotype_child_mother[i][0] = 1
-            #    candidate_single_SV_gt_fam_ls[0][i][gt_index] = "1/0:0|1"
-            #    gl_split_ls = candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")
-            #    _, GL_P, _, _, GQ, QUAL = cal_GL_2(len(phased_sv_haplotype_child_mother[i][11]), len(phased_sv_haplotype_child_mother[i][10]))
-            #    gl_split_ls[4] = str(min(float(gl_split_ls[3]),float(gl_split_ls[4])))
-            #    gl_split_ls[3] = str(GL_P)
-            #    candidate_single_SV_gt_fam_ls[0][i][gl_index] = ",".join(gl_split_ls)
-            #    candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(GQ)
-            #    candidate_single_SV_gt_fam_ls[0][i][qual_index] = str(QUAL)
-            
-            #if log_flag :
-            #    logging.info(candidate_single_SV_gt_fam_ls[0][i][2])
-            #    logging.info("%s/%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i]),str(candidate_single_SV_gt_fam_ls[1][i]),str(candidate_single_SV_gt_fam_ls[2][i])))
-            #    logging.info("phased_sv_haplotype_child_father:%s"%(phased_sv_haplotype_child_father[i]))
-            #    logging.info("phased_sv_haplotype_child_mother:%s"%(phased_sv_haplotype_child_mother[i]))
-            #    father_len_ls = [len(x) for x in phased_sv_haplotype_child_father[i][6:]]
-            #    logging.info("%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),str(father_len_ls)))
-            #    mother_len_ls = [len(x) for x in phased_sv_haplotype_child_mother[i][6:]]
-            #    logging.info("%s/%s"%(str(candidate_single_SV_gt_fam_ls[0][i][2]),str(mother_len_ls)))
+
     return change_num
 
 def eliminate_phase_information(candidate_single_SV_gt_fam_ls) :
@@ -1605,8 +1330,6 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
             for i in range(len(phased_sv_haplotype_child_father)) :
                 if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                     reads_list = list(set(phased_sv_haplotype_child_father[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_child_father[i][8]+phased_sv_haplotype_child_father[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1622,8 +1345,6 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
             for i in range(len(phased_sv_haplotype_child_mother)) :
                 if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                     reads_list = list(set(phased_sv_haplotype_child_mother[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_child_mother[i][8]+phased_sv_haplotype_child_mother[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1639,8 +1360,6 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
             for i in range(len(phased_sv_haplotype_father_inher)) :
                 if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                     reads_list = list(set(phased_sv_haplotype_father_inher[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_father_inher[i][8]+phased_sv_haplotype_father_inher[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1656,8 +1375,6 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
             for i in range(len(phased_sv_haplotype_father_forgo)) :
                 if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                     reads_list = list(set(phased_sv_haplotype_father_forgo[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_father_forgo[i][8]+phased_sv_haplotype_father_forgo[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1674,8 +1391,6 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
                 for i in range(len(phased_sv_haplotype_mother_inher)) :
                     if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                         reads_list = list(set(phased_sv_haplotype_mother_inher[i][10]))
-                    #else :
-                    #    reads_list = list(set(phased_sv_haplotype_mother_inher[i][8]+phased_sv_haplotype_mother_inher[i][11]))
                         for r in reads_list :
                             if r == "" :
                                 continue
@@ -1691,27 +1406,12 @@ def generate_haplotype_read_names(temporary_dir, family_mode, phasing_fam_result
                 for i in range(len(phased_sv_haplotype_mother_forgo)) :
                     if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                         reads_list = list(set(phased_sv_haplotype_mother_forgo[i][10]))
-                    #else :
-                    #    reads_list = list(set(phased_sv_haplotype_mother_forgo[i][8]+phased_sv_haplotype_mother_forgo[i][11]))
                         for r in reads_list :
                             if r == "" :
                                 continue
                             else :
                                 f.write("/".join(r.split("/")[2:])+"\n")
             f.close()
-
-
-            
-            #if phased_sv_haplotype_child_father[i][0] > 0.5 and len(phased_sv_haplotype_child_father[i][6]) < len(phased_sv_haplotype_child_father[i][8]) :
-                #logging.info("%s/%s"%(phased_sv_haplotype_child_father[i],phased_sv_haplotype_child_mother[i]))
-            
-            
-            #if (phased_sv_haplotype_child_father[i][0] > 0.5 and phased_sv_haplotype_child_father[i][0] < 0.5) or (phased_sv_haplotype_child_father[i][0] < 0.5 and phased_sv_haplotype_child_father[i][0] > 0.5) :
-            #    if 
-            
-            #if phased_sv_haplotype_child_father[i][0] > 0.5 and (len(phased_sv_haplotype_child_father[i][6]) < len(phased_sv_haplotype_child_father[i][8]) or len(phased_sv_haplotype_child_father[i][10]) < len(phased_sv_haplotype_child_father[i][11])) :
-            #    logging.info(phased_sv_haplotype_child_father[i])
-            #    logging.info(phased_sv_haplotype_child_mother[i])
 
 def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child_hap1_results, child_hap2_results, father_hap1_results, father_hap2_results, mother_hap1_results, mother_hap2_results) :
     gt_index = 8
@@ -1723,8 +1423,6 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
             for i in range(len(phased_sv_haplotype_child_father)) :
                 if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                     reads_list = list(set(phased_sv_haplotype_child_father[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_child_father[i][8]+phased_sv_haplotype_child_father[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1740,8 +1438,6 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
             for i in range(len(phased_sv_haplotype_child_mother)) :
                 if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                     reads_list = list(set(phased_sv_haplotype_child_mother[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_child_mother[i][8]+phased_sv_haplotype_child_mother[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1757,8 +1453,6 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
             for i in range(len(phased_sv_haplotype_father_inher)) :
                 if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                     reads_list = list(set(phased_sv_haplotype_father_inher[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_father_inher[i][8]+phased_sv_haplotype_father_inher[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1774,8 +1468,6 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
             for i in range(len(phased_sv_haplotype_father_forgo)) :
                 if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                     reads_list = list(set(phased_sv_haplotype_father_forgo[i][10]))
-                #else :
-                #    reads_list = list(set(phased_sv_haplotype_father_forgo[i][8]+phased_sv_haplotype_father_forgo[i][11]))
                     for r in reads_list :
                         if r == "" :
                             continue
@@ -1792,8 +1484,6 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
                 for i in range(len(phased_sv_haplotype_mother_inher)) :
                     if candidate_single_SV_gt_ls[i][gt_index][4] == "1" :
                         reads_list = list(set(phased_sv_haplotype_mother_inher[i][10]))
-                    #else :
-                    #    reads_list = list(set(phased_sv_haplotype_mother_inher[i][8]+phased_sv_haplotype_mother_inher[i][11]))
                         for r in reads_list :
                             if r == "" :
                                 continue
@@ -1809,34 +1499,12 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
                 for i in range(len(phased_sv_haplotype_mother_forgo)) :
                     if candidate_single_SV_gt_ls[i][gt_index][6] == "1" :
                         reads_list = list(set(phased_sv_haplotype_mother_forgo[i][10]))
-                    #else :
-                    #    reads_list = list(set(phased_sv_haplotype_mother_forgo[i][8]+phased_sv_haplotype_mother_forgo[i][11]))
                         for r in reads_list :
                             if r == "" :
                                 continue
                             else :
                                 f.write("/".join(r.split("/")[2:])+"\n")
             f.close()
-
-
-            
-            #if phased_sv_haplotype_child_father[i][0] > 0.5 and len(phased_sv_haplotype_child_father[i][6]) < len(phased_sv_haplotype_child_father[i][8]) :
-                #logging.info("%s/%s"%(phased_sv_haplotype_child_father[i],phased_sv_haplotype_child_mother[i]))
-            
-            
-            #if (phased_sv_haplotype_child_father[i][0] > 0.5 and phased_sv_haplotype_child_father[i][0] < 0.5) or (phased_sv_haplotype_child_father[i][0] < 0.5 and phased_sv_haplotype_child_father[i][0] > 0.5) :
-            #    if 
-            
-            #if phased_sv_haplotype_child_father[i][0] > 0.5 and (len(phased_sv_haplotype_child_father[i][6]) < len(phased_sv_haplotype_child_father[i][8]) or len(phased_sv_haplotype_child_father[i][10]) < len(phased_sv_haplotype_child_father[i][11])) :
-            #    logging.info(phased_sv_haplotype_child_father[i])
-            #    logging.info(phased_sv_haplotype_child_mother[i])
-
-
-
-
-
-# 0-基因型概率,1-phase状态,2-父母本来源,3-block序号,4-pos,5-type,6-变异reads列表,7-变异pos列表,8-无变异reads列表,9-无变异pos列表,10-phase得到的变异reads列表，11-phase得到的无变异reads列表
-
 
 def run_phasing(args) :
     #logging.info("1")
