@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: cuteSVTrio
 Version: 1.0.0
 Summary: Long-read-based human genomic structural variation detection with cuteSVTrio
@@ -15,15 +15,6 @@ Requires-Dist: Cigar
 Requires-Dist: numpy
 Requires-Dist: pyvcf3
 Requires-Dist: scikit-learn
-Dynamic: author
-Dynamic: author-email
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: license
-Dynamic: license-file
-Dynamic: requires-dist
-Dynamic: summary
 
 # cuteSV-Trio: Haplotype-Resolved and *De Novo* Structural Variant Detection from Low-Coverage Long-Read Family Trios data
 
@@ -96,7 +87,7 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 ## Installation
 
 ```
-git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python setup.py install 
+git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python -m pip install .
 ```
 
 

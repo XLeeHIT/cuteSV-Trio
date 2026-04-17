@@ -1,6 +1,6 @@
-import pyabpoa
+#import pyabpoa
 import logging
-import mappy as mp
+#import mappy as mp
 import pysam
 import time
 import random
