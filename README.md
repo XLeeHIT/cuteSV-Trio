@@ -68,19 +68,19 @@ cuteSV-Trio utilizes low-coverage long-read alignments from three family members
 
 ## Installation
 
-###Option 1. Install by src
+### Option 1. Install by src
 
 ```
 git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSVTrio/ && python -m pip install .
 ```
 
-###Option 2. Install by BioConda
+### Option 2. Install by BioConda
 
 ```
 conda install cutesv-trio
 ```
 
-###Option 3. Install by PyPi
+### Option 3. Install by PyPi
 
 ```
 pip install cuteSVTrio
