@@ -5,6 +5,7 @@
 ![Language](https://img.shields.io/badge/language-python-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS-brightgreen)
+[![PyPI version](https://img.shields.io/pypi/v/cuteSVTrio)](https://pypi.org/project/cuteSVTrio/1.0.0/)
 
 
 <div align="center">
@@ -154,6 +155,8 @@ cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2
 
 
 ## Population SVs callset constructing
+
+**Trio-based SV atlas built using cutesv-Trio can be accessed from [cuteMap](https://github.com/XLeeHIT/cuteMap).**
 
 <div align="center">
   <a target="_blank">
