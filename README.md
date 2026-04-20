@@ -147,7 +147,7 @@ demo/fam.3.bam-------------------------The 30X bam of mother
 
 rm -r work/ ; 
 mkdir work/ ; 
-cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -g T2T -r demo/ref.fasta -o demo.vcf -w work/ --family_mode M1 --input_offspring demo/fam.1.bam --input_parent_1 demo/fam.2.bam --input_parent_2 demo/fam.3.bam --threads 32 --execute_stage 0 --min_support_list 5,5,5 ; 
+cuteSVTrio --retain_work_dir --write_old_sigs --performing_phasing -p HiFI -r demo/ref.fasta -o demo.vcf -w work/ --family_mode M1 --input_offspring demo/fam.1.bam --input_parent_1 demo/fam.2.bam --input_parent_2 demo/fam.3.bam --threads 32 --min_support_list 5,5,5 ; 
 ```
 
 
@@ -254,6 +254,9 @@ v0.5.0 (December 10, 2025) :
 
 v1.0.0 (April 16, 2026) : 
 1. The official version accompanying the formal paper submission.
+
+*Upcoming update*
+1. The *-g* parameter was added to support the transition of the HG002 gold-standard benchmark from NIST to T2T around 2025. As the NIST benchmark is now largely deprecated, this parameter will be removed in a future release.
 
 ------
 
