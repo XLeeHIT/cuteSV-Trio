@@ -19,7 +19,6 @@ from cuteSVTrio.cuteSVTrio_genotype import generate_output, generate_pvcf, load_
 from cuteSVTrio.cuteSVTrio_phasing import run_phasing,genetic_phasing_family,genetic_no_phasing_family, generate_haplotype_read_names
 from cuteSVTrio.cuteSVTrio_assembly import split_reference_chromosomes, remove_redundant_samesv, run_assembly, remove_redundant_pos
 import pysam
-import cigar
 from multiprocessing import Pool,Manager,Queue, current_process
 import os
 import argparse
@@ -30,6 +29,7 @@ import gc
 import pickle
 import atexit
 import math
+import re
 
 dic_starnd = {1: '+', 2: '-'}
 RefChangeOp=set([0,2,7,8])
@@ -460,8 +460,34 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                         "DUP",
                                         ele_2[4]))
 
+def parse_cigar(cigar_str):
+    return [
+        (int(length), op)
+        for length, op in re.findall(
+            r'(\d+)([MIDNSHP=X])',
+            cigar_str
+        )
+    ]
+
 def acquire_clip_pos(deal_cigar):
-    seq = list(cigar.Cigar(deal_cigar).items())
+    #seq = list(cigar.Cigar(deal_cigar).items())
+    #if seq[0][1] == 'S':
+    #    first_pos = seq[0][0]
+    #else:
+    #    first_pos = 0
+    #if seq[-1][1] == 'S':
+    #    last_pos = seq[-1][0]
+    #else:
+    #    last_pos = 0
+    #
+    #bias = 0
+    #for i in seq:
+    #    if i[1] == 'M' or i[1] == 'D' or i[1] == '=' or i[1] == 'X':
+    #        bias += i[0]
+    #return [first_pos, last_pos, bias]
+
+    # parse cigar string
+    seq = parse_cigar(deal_cigar)
     if seq[0][1] == 'S':
         first_pos = seq[0][0]
     else:
@@ -470,11 +496,10 @@ def acquire_clip_pos(deal_cigar):
         last_pos = seq[-1][0]
     else:
         last_pos = 0
-
     bias = 0
-    for i in seq:
-        if i[1] == 'M' or i[1] == 'D' or i[1] == '=' or i[1] == 'X':
-            bias += i[0]
+    for length, op in seq:
+        if op in ['M', 'D', '=', 'X']:
+            bias += length
     return [first_pos, last_pos, bias]
 
 def organize_split_signal(primary_info, Supplementary_info, total_L, SV_size, 

@@ -4,9 +4,9 @@ import mappy as mp
 import pysam
 import time
 import random
+import re
 from math import floor
 from Bio import SeqIO
-from cigar import Cigar
 
 gt_index = 8
 gl_index = 9
@@ -1319,14 +1319,18 @@ def split_reference_chromosomes(temporary_dir, reference) :
             with open(output_file, "w") as outfile:
                 SeqIO.write(chrom_records, outfile, "fasta")
 
+def parse_cigar(cigar_str):
+    cigar_ops = []
+    for length, op in re.findall(r'(\d+)([MIDNSHP=X])', cigar_str):
+        cigar_ops.append((int(length), op))
+    return cigar_ops
+
 def sv_from_cigar(chr, cigar_str, ref_start, sv_min_size, origin_ref_start, sequence, reference):
-    c = Cigar(cigar_str)
+    c = parse_cigar(cigar_str)
     svs = []
-
-    ref_pos = ref_start   
-    read_pos = 0          
-
-    for length, op in c.items():
+    ref_pos = ref_start
+    read_pos = 0
+    for length, op in c:
         if op in ("M", "=", "X", "N"):
             ref_pos += length
             read_pos += length
