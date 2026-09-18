@@ -8,7 +8,6 @@ import random
 import copy
 import time
 
-
 #consistency_threshold limit the probability of two genotypes
 consistency_threshold = 0.15
 #genotype_threshold determine whether the probability of a certain genotype is close to 0 or 1
@@ -833,7 +832,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                             phased_sv_haplotype_mother_reverse[sv][3] = block_no
                         phased_sv_haplotype_mother_reverse[sv][11].append(read_name)
 
-    # 整合父本/整合遗传单倍体
+    # integrating the paternal/discarding haploids
     sv_i = 0
     inconsistent_num = 0
     while(sv_i <= len(phased_sv_haplotype_father_forward)-1) :
@@ -1613,5 +1612,4 @@ def generate_haplotype_fa(temporary_dir, family_mode, phasing_fam_results, child
             f.close()
 
 def run_phasing(args) :
-    #logging.info("1")
     return genetic_phasing_family(*args)

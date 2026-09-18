@@ -2,12 +2,12 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title:  cuteSVTrio_Description.py
  * @author: Lixin
- * @date: Apr. 19th 2025
- * @version V0.1.0
+ * @date: Sep. 18th 2026
+ * @version V1.1.0
 '''
 import argparse
 
-VERSION = '0.1.0'
+VERSION = '1.1.0'
 
 class cuteSVTriodp(object):
 	'''
@@ -260,10 +260,6 @@ def parseArgs(argv):
 		help = "Do not merge breakpoints with basepair identity more than [%(default)s] for insertion.", 
 		default = 0.05, 
 		type = float)
-	# GroupAdvanced.add_argument('--diff_ratio_filtering_INS', 
-	# 	help = "Filter breakpoints with basepair identity less than [%(default)s] for insertion.", 
-	# 	default = 0.6, 
-	# 	type = float)
 
 	# ++++++DEL++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_DEL', 
@@ -274,10 +270,6 @@ def parseArgs(argv):
 		help = "Do not merge breakpoints with basepair identity more than [%(default)s] for deletion.", 
 		default = 0.05, 
 		type = float)
-	# GroupAdvanced.add_argument('--diff_ratio_filtering_DEL', 
-	# 	help = "Filter breakpoints with basepair identity less than [%(default)s] for deletion.", 
-	# 	default = 0.7, 
-	# 	type = float)
 
 	# ++++++INV++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INV', 
@@ -305,17 +297,6 @@ def parseArgs(argv):
 		help = "The ratio of reads remained in cluster. Set lower when the alignment data have high quality but recommand over 0.5.[%(default)s]", 
 		default = 1.0, 
 		type = float)
-
-	# parser.add_argument('-d', '--max_distance', 
-	# 	help = "Maximum distance to group SV together..[%(default)s]", 
-	# 	default = 1000, type = int)
-
-
-
-	# These parameters are drawn lessons from pbsv v2.2.0
-	# parser.add_argument('--min_del_size', 
-	# 	help = "Minimum size of a deletion.[%(default)s]", 
-	# 	default = 20, type = int)
 
 	args = parser.parse_args(argv)
 	return args
@@ -346,7 +327,6 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##INFO=<ID=END,Number=1,Type=Integer,Description=\"End position of the variant described in this record\">\n")
 	file.write("##INFO=<ID=CIPOS,Number=2,Type=Integer,Description=\"Confidence interval around POS for imprecise variants\">\n")
 	file.write("##INFO=<ID=CILEN,Number=2,Type=Integer,Description=\"Confidence interval around inserted/deleted material between breakends\">\n")
-	# file.write("##INFO=<ID=MATEID,Number=.,Type=String,Description=\"ID of mate breakends\">\n")
 	file.write("##INFO=<ID=RE,Number=1,Type=Integer,Description=\"Number of read support this record\">\n")
 	file.write("##INFO=<ID=STRAND,Number=A,Type=String,Description=\"Strand orientation of the adjacency in BEDPE format (DEL:+-, DUP:-+, INV:++/--)\">\n")
 	file.write("##INFO=<ID=RNAMES,Number=.,Type=String,Description=\"Supporting read names of SVs (comma separated)\">\n")

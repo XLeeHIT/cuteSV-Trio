@@ -7,16 +7,7 @@ import pickle
 import copy
 import time
 
-'''
-*******************************************
-                TO DO LIST
-*******************************************
-    1. Identify DP with samfile pointer;
-    2. Add CIPOS, CILEN and/or CIEND;
-    3. Determine (IM)PRECISE type.
-*******************************************
 
-'''
 def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
                    minimum_support_reads_list, gt_round, remain_reads_ratio, merge_del_threshold, 
                    read_pos_interval, family_mode, performing_phasing, output_read_quality):

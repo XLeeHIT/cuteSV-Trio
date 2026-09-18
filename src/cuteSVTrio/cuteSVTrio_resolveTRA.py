@@ -14,7 +14,7 @@ import time
             *    TYPE C:        [chr:pos[N    *
             *    TYPE D:        ]chr:pos]N    *
             *****************************
-            '''
+'''
 
 def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, minimum_support_reads_list, bam_path_list, gt_round, read_pos_interval, family_mode, performing_phasing):
     start_time = time.time()

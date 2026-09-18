@@ -4,8 +4,8 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSVTrio 
  * @author: Lixin
- * @date: Apr. 19th 2025
- * @version V0.1.0
+ * @date: Sep. 18th 2026
+ * @version V1.1.0
 '''
 
 
@@ -21,7 +21,6 @@ from cuteSVTrio.cuteSVTrio_assembly import split_reference_chromosomes, remove_r
 import pysam
 import cigar
 from multiprocessing import Pool,Manager,Queue, current_process
-#from cuteSVTrio.cuteSVTrio_mendel import resolution_INDEL_mendel
 import os
 import argparse
 import logging
@@ -1251,7 +1250,6 @@ def main_ctrl(args, argv):
                         min(minimum_support_reads_list),
                         run_diff_ratio_merging_DEL, 
                         run_max_cluster_bias_DEL, 
-                        # args.diff_ratio_filtering_DEL, 
                         minimum_support_reads_list, 
                         args.gt_round,
                         args.remain_reads_ratio,

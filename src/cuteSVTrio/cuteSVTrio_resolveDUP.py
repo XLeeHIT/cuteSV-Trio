@@ -7,6 +7,7 @@ import pickle
 import copy
 import time
 
+
 def resolution_DUP(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing, output_read_quality):
     start_time = time.time()
     semi_dup_cluster = list()
@@ -263,8 +264,5 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
             candidate_single_SV_gt[i].append('')
             candidate_single_SV_gt[i].append('')
             candidate_single_SV_gt[i].append('')
-    
-    
-    
-    
+
     return candidate_single_SV_gt	

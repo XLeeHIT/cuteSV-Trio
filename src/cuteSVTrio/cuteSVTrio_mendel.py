@@ -167,8 +167,6 @@ def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matchin
                 pass
             candidate_single_SV_gt_fam_ls[0][i][gl_index] = ",".join(gl_split_ls)
 
-
-
 # Determining whether a trio conforms to Mendel's law of inheritance
 def mendel_assert(family_gt_ls, family_mode, nearby_matching) :
     family_mode_index_ls = ["M1","M2"]

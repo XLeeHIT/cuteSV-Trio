@@ -13,7 +13,6 @@ Genotype = ["0/0", "0/1", "1/1"]
 deta_limit = -0.001
 chr_ls = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"]
 
-
 def log10sumexp(log10_probs):
     # Normalization of Genotype likelihoods
     m = max(log10_probs)
@@ -84,7 +83,7 @@ def cal_Gl_3_sim(c0, c1) :
     roots = np.roots([a, b, c])
     return "%f,%f,%f"%(log10(GL_P[0]), log10(GL_P[1]), log10(GL_P[2]))
 
-#cal_GL_2得到单支基因型的编译可能性
+#cal_GL_2obtains the genotype likelihoods for a single haplotype
 def cal_GL_2(c0, c1) :
     c0, c1 = rescale_read_counts(c0, c1) # DR, DV
     ori_GL0 = np.float64(pow((1-err), c0)*pow(err, c1)*(1-prior))
@@ -637,7 +636,6 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir, output_read_qual
     if len(lines)!=0:
         pickle.dump(lines,f)
 
-
 # def generate_pvcf(args, result, contigINFO, argv, ref_g):
 def generate_pvcf(args, result, reference, chrom):
     fa_file = pysam.FastaFile(reference)
@@ -825,7 +823,6 @@ def generate_pvcf(args, result, reference, chrom):
                 ))
     return lines
 
-            
 def load_valuable_chr(path):
     valuable_chr = dict()
     valuable_chr["DEL"] = list()
@@ -1103,7 +1100,6 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                     else :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/0'
                     
-            
             # c0=c1=0
             # since no read information, the theoretical Mendel correction is used.
             for j in range(3) :
