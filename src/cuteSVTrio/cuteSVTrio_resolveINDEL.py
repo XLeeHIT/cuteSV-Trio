@@ -19,7 +19,7 @@ import time
 '''
 def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
                    minimum_support_reads_list, gt_round, remain_reads_ratio, merge_del_threshold, 
-                   read_pos_interval, family_mode, performing_phasing):
+                   read_pos_interval, family_mode, performing_phasing, output_read_quality):
 
     '''
     cluster DEL
@@ -192,7 +192,7 @@ def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
     candidate_single_SV_gt_fam_ls = []
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'DEL', family_mode, family_member, minimum_support_reads_list, performing_phasing))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'DEL', family_mode, family_member, minimum_support_reads_list, performing_phasing, output_read_quality))
     standard_list = 0
     for i in range(len(candidate_single_SV_gt_fam_ls)) :
         if len(candidate_single_SV_gt_fam_ls[i]) != 0 :
@@ -214,10 +214,11 @@ def resolution_DEL(path, chr, read_count, threshold_gloab, max_cluster_bias,
     increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'DEL', minimum_support_reads_list, family_mode)    # 使用ESS算法
     
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'DEL', family_mode)
-    correction_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+    if family_mode == "M1" :
+        correction_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
 
     if not performing_phasing and family_mode == "M1" :
-        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, performing_phasing)
 
     logging.info("Finished calling %s:%s:%f."%(chr, "DEL", time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
@@ -353,7 +354,7 @@ def generate_del_cluster(semi_del_cluster, chr, read_count,
 
 def resolution_INS(path, chr, read_count, threshold_gloab, 
                    max_cluster_bias, minimum_support_reads_list, gt_round, remain_reads_ratio, merge_INS_threshold, 
-                   read_pos_interval, family_mode, performing_phasing, all_ins_singnature_reads):
+                   read_pos_interval, family_mode, performing_phasing, all_ins_singnature_reads, output_read_quality):
     
     '''
     cluster INS
@@ -531,7 +532,7 @@ def resolution_INS(path, chr, read_count, threshold_gloab,
     candidate_single_SV_gt_fam_ls = []
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'INS', family_mode, family_member, minimum_support_reads_list, performing_phasing))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], max_cluster_bias, 'INS', family_mode, family_member, minimum_support_reads_list, performing_phasing, output_read_quality))
     standard_list = 0
     for i in range(len(candidate_single_SV_gt_fam_ls)) :
         if len(candidate_single_SV_gt_fam_ls[i]) != 0 :
@@ -553,10 +554,11 @@ def resolution_INS(path, chr, read_count, threshold_gloab,
     increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INS', minimum_support_reads_list, family_mode)
     
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'INS', family_mode)
+    if family_mode == "M1" :
+        correction_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     
-    correction_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
     if not performing_phasing and family_mode == "M1" :
-        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, performing_phasing)
 
     logging.info("Finished calling %s:%s:%f."%(chr, "INS", time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
@@ -800,7 +802,7 @@ def run_del(args):
 def run_ins(args):
     return resolution_INS(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, svtype, family_mode, family_member, minimum_support_reads_list, performing_phasing):
+def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, svtype, family_mode, family_member, minimum_support_reads_list, performing_phasing, output_read_quality):
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
         f.close()    
@@ -815,14 +817,14 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     for item in candidate_info_SV :
         pos_bias = 1000 if item[3] < 1000 else max_cluster_bias
         svs_list.append((max(item[7] - pos_bias, 0), item[7] + abs(item[3]) + pos_bias, item[3]))
-    iteration_dict, primary_num_dict, cover_dict, overlap_dict, cover_pos_dict = overlap_cover(svs_list, reads_list, performing_phasing) # both key(sv idx), value(set(read id))
+    iteration_dict, primary_num_dict, cover_dict, overlap_dict, cover_pos_dict, read_mapq_dict = overlap_cover(svs_list, reads_list, performing_phasing, output_read_quality) # both key(sv idx), value(set(read id))
     assert len(cover_dict) == len(candidate_single_SV), "overlap length error"
 
     read_id_dict = dict()
     for i in range(len(candidate_single_SV)):
         read_id_dict[i] = candidate_single_SV[i][8]
     
-    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing)
+    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, read_mapq_dict, svtype, family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing, output_read_quality)
     # [[DV, DR, GT, GL, GQ, QUAL] ...]
     assert len(candidate_single_SV) == len(assign_list), "assign error"
     candidate_single_SV_gt = list()
@@ -852,6 +854,10 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
                 candidate_single_SV_gt[i].append(','.join([str(x) for x in candidate_single_SV[i][11]]))
                 candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
                 candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
+            elif output_read_quality:
+                candidate_single_SV_gt[i].append('')
+                candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
+                candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
             else :
                 candidate_single_SV_gt[i].append('')
                 candidate_single_SV_gt[i].append('')
@@ -860,6 +866,10 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
             candidate_single_SV_gt[i].append(candidate_info_SV[i][9])
             if performing_phasing :
                 candidate_single_SV_gt[i].append(','.join([str(x) for x in candidate_single_SV[i][10]]))
+                candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
+                candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
+            elif output_read_quality:
+                candidate_single_SV_gt[i].append('')
                 candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
                 candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
             else :

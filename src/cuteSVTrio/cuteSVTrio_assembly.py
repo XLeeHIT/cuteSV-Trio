@@ -1,6 +1,6 @@
-#import pyabpoa
+import pyabpoa
 import logging
-#import mappy as mp
+import mappy as mp
 import pysam
 import time
 import random
@@ -1420,9 +1420,13 @@ def remove_redundant_pos(chr, sv_ls, family_mode) :
     new_ls = [[] for  x in family_member_ls]
     for n_s in range(len(sv_ls[0])) :
         if n_s not in redundant_index :
-            new_ls[0].append(sv_ls[0][n_s])
-            new_ls[1].append(sv_ls[1][n_s])
-            new_ls[2].append(sv_ls[2][n_s])
+            if family_mode == "M1" :
+                new_ls[0].append(sv_ls[0][n_s])
+                new_ls[1].append(sv_ls[1][n_s])
+                new_ls[2].append(sv_ls[2][n_s])
+            else :
+                new_ls[0].append(sv_ls[0][n_s])
+                new_ls[1].append(sv_ls[1][n_s])
     return new_ls
 
 

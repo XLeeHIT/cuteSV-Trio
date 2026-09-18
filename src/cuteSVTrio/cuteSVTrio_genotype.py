@@ -133,7 +133,25 @@ def count_coverage(chr, s, e, f, read_count, up_bound, itround):
 
     return status
 
-def overlap_cover(svs_list, reads_list, performing_phasing):
+def overlap_cover(svs_list, reads_list, performing_phasing, output_read_quality):
+    if output_read_quality :
+        read_mapq_dict = {}
+        for read_info in reads_list:
+            if read_info[2] == 1:   # primary alignment
+                read_name = read_info[3]
+                if len(read_info) > 5:
+                    mapq = int(read_info[5])
+                else:
+                    mapq = -1
+                if read_name not in read_mapq_dict:
+                    read_mapq_dict[read_name] = mapq
+                else:
+                    read_mapq_dict[read_name] = max(
+                        read_mapq_dict[read_name],
+                        mapq
+                    )
+    else :
+        read_mapq_dict = {}
     sort_list = list()
     idx = 0
     for i in reads_list:
@@ -199,18 +217,24 @@ def overlap_cover(svs_list, reads_list, performing_phasing):
         for x in overlap_dict[idx]:
             if reads_list[x][2] == 1:
                 overlap2_dict[idx].add(reads_list[x][3])
-    return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict, cover_pos_dict
+    return iteration_dict, primary_num_dict, cover2_dict, overlap2_dict, cover_pos_dict, read_mapq_dict
 
-def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, svtype, family_member, minimum_support_reads, performing_phasing):
+def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, read_mapq_dict, svtype, family_member, minimum_support_reads, performing_phasing, output_read_quality):
     assign_list = list()
     for idx in read_id_dict:
         cover_not_sv_read = []
         cover_not_sv_pos = []
+        support_sv_read = []
+        support_sv_quality = []
         iteration = iteration_dict[idx]
         primary_num = primary_num_dict[idx]
         read_count = cover_dict[idx]
         if performing_phasing :
             pos_count = cover_pos_dict[idx]
+        if output_read_quality:
+            for query in read_id_dict[idx]:
+                support_sv_read.append(query)
+                support_sv_quality.append(read_mapq_dict.get(query, -1))
         DR = 0
         for j in range(len(read_count)):
             query = read_count[j]
@@ -226,7 +250,10 @@ def assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_
                 logging.info("%d/%d"%(len(cover_not_sv_read),len(cover_not_sv_pos)))
             assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL, cover_not_sv_read, cover_not_sv_pos])
         else :
-            assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL, [], []])
+            if output_read_quality :
+                assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL, support_sv_read, support_sv_quality])
+            else :
+                assign_list.append([len(read_id_dict[idx]), DR, GT, GL, GQ, QUAL, [], []])
     return assign_list
 
 def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, overlap2_dict):
@@ -277,7 +304,7 @@ def duipai(svs_list, reads_list, iteration_dict, primary_num_dict, cover2_dict, 
         idx += 1
     print('Correct iteration cover %d; overlap %d'%(correct_cover, correct_overlap))
 
-def generate_output(args, semi_result_ls, chrom, temporary_dir):
+def generate_output(args, semi_result_ls, chrom, temporary_dir, output_read_quality):
     
     '''
     Generation of VCF format file.
@@ -325,6 +352,10 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";STRAND=+-"
             if res_i[9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1:]
+            elif semi_result_ls[1][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[1][i][9].split(",")[8][1:]
+            elif len(semi_result_ls) > 2 and semi_result_ls[2][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[2][i][9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -340,6 +371,16 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                     filter_lable = "PASS" if float(res_j[11]) >= 5.0 else "q5"
                 info_list = info_list + filter_lable + ","
             info_list = info_list[:-1]
+            if output_read_quality :
+                support_read_list = []
+                support_mapq_list = []
+                for fam_idx in range(len(semi_result_ls)):
+                    read_str = semi_result_ls[fam_idx][i][16]
+                    mapq_str = semi_result_ls[fam_idx][i][17]
+                    if read_str != "" and mapq_str != "":
+                        support_read_list.extend(read_str.split(","))
+                        support_mapq_list.extend(mapq_str.split(","))
+                info_list += (";SUPPORTREAD=" + ",".join(support_read_list) + ";SUPPORTMAPQ=" + ",".join(support_mapq_list))
             if res_i[11] == "." or res_i[11] == None:
                 filter_lable = "PASS"
             else:
@@ -387,6 +428,10 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             if res_i[9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1:]
+            elif semi_result_ls[1][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[1][i][9].split(",")[8][1:]
+            elif len(semi_result_ls) > 2 and semi_result_ls[2][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[2][i][9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -402,6 +447,16 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                     filter_lable = "PASS" if float(res_j[11]) >= 5.0 else "q5"
                 info_list = info_list + filter_lable + ","
             info_list = info_list[:-1]
+            if output_read_quality :
+                support_read_list = []
+                support_mapq_list = []
+                for fam_idx in range(len(semi_result_ls)):
+                    read_str = semi_result_ls[fam_idx][i][16]
+                    mapq_str = semi_result_ls[fam_idx][i][17]
+                    if read_str != "" and mapq_str != "":
+                        support_read_list.extend(read_str.split(","))
+                        support_mapq_list.extend(mapq_str.split(","))
+                info_list += (";SUPPORTREAD=" + ",".join(support_read_list) + ";SUPPORTMAPQ=" + ",".join(support_mapq_list))
             if res_i[11] == "." or res_i[11] == None:
                 filter_lable = "PASS"
             else:
@@ -450,6 +505,10 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             if res_i[9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1:]
+            elif semi_result_ls[1][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[1][i][9].split(",")[8][1:]
+            elif len(semi_result_ls) > 2 and semi_result_ls[2][i][9].split(",")[8] in ["-0","-1","-2","-3","-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[2][i][9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -465,6 +524,16 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                     filter_lable = "PASS" if float(res_j[11]) >= 5.0 else "q5"
                 info_list = info_list + filter_lable + ","
             info_list = info_list[:-1]
+            if output_read_quality :
+                support_read_list = []
+                support_mapq_list = []
+                for fam_idx in range(len(semi_result_ls)):
+                    read_str = semi_result_ls[fam_idx][i][16]
+                    mapq_str = semi_result_ls[fam_idx][i][17]
+                    if read_str != "" and mapq_str != "":
+                        support_read_list.extend(read_str.split(","))
+                        support_mapq_list.extend(mapq_str.split(","))
+                info_list += (";SUPPORTREAD=" + ",".join(support_read_list) + ";SUPPORTMAPQ=" + ",".join(support_mapq_list))
             if res_i[11] == "." or res_i[11] == None:
                 filter_lable = "PASS"
             else:
@@ -508,6 +577,10 @@ def generate_output(args, semi_result_ls, chrom, temporary_dir):
                 info_list += ";AF=."
             if res_i[9].split(",")[8] in ["-1","-2","-3"] :
                 info_list = info_list + ";CorrectType=" + res_i[9].split(",")[8][1]
+            elif semi_result_ls[1][i][9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[1][i][9].split(",")[8][1:]
+            elif len(semi_result_ls) > 2 and semi_result_ls[2][i][9].split(",")[8] in ["-1","-2","-3"] :
+                info_list = info_list + ";CorrectType=" + semi_result_ls[2][i][9].split(",")[8][1:]
             if res_i[9].split(",")[8] in ["1","2","3"] :
                 info_list = info_list + ";Denovo=" + res_i[9].split(",")[8]
             info_list = info_list + ";QUALLIST="
@@ -1012,7 +1085,12 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 if (sv_gl_fam[j][0]+sv_gl_fam[j][1]) != 0 and sv_gl_fam[j][1] < minimum_support_reads_list[j] and fam_sv_len[j] > length_limit :
                     _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j])
                     gl_str_split = gl_str.split(",")
-                    gl_str_split[8] = "-2"
+                    if j == 0 :
+                        gl_str_split[8] = "-4"
+                    elif j == 1 :
+                        gl_str_split[8] = "-5"
+                    else :
+                        gl_str_split[8] = "-6"
                     candidate_single_SV_gt_fam_ls[j][i][gl_index] = ",".join(gl_str_split)
                     candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(GQ)
                     candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(QUAL)
@@ -1042,12 +1120,22 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         GL_P = [v/sum(sv_gp_fam[0]) for v in sv_gp_fam[0]]
                     if GL_P.index(max(GL_P)) == 2 :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/1'
-                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-1"
+                        if j == 0 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-1"
+                        elif j == 1 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-2"
+                        else :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-3"
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
                     else :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '0/1'
-                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-1"
+                        if j == 0 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-1"
+                        elif j == 1 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-2"
+                        else :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-3"
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
 
@@ -1083,7 +1171,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         c = GL_P[2]
                         roots = np.roots([a, b, c])
                         if GL_P.index(max(GL_P)) > 0 :
-                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[5]), sv_gl_fam[0][0], sv_gl_fam[0][1])
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-7"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[5]), sv_gl_fam[0][0], sv_gl_fam[0][1])
                             candidate_single_SV_gt_fam_ls[0][i][gl_index] = gl_str
                             candidate_single_SV_gt_fam_ls[0][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(max(GQ))
@@ -1110,7 +1198,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         c = GL_P[2]
                         roots = np.roots([a, b, c])
                         if GL_P.index(max(GL_P)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
-                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[5]), sv_gl_fam[1][0], sv_gl_fam[1][1])
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-8"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[5]), sv_gl_fam[1][0], sv_gl_fam[1][1])
                             candidate_single_SV_gt_fam_ls[1][i][gl_index] = gl_str
                             candidate_single_SV_gt_fam_ls[1][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(max(GQ))
@@ -1135,7 +1223,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         c = GL_P[2]
                         roots = np.roots([a, b, c])
                         if GL_P.index(max(GL_P)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[2]) / max(fam_sv_len[0],fam_sv_len[2])) < sv_len_distance_threshold:
-                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[2][i][gl_index].split(",")[5]), sv_gl_fam[2][0], sv_gl_fam[2][1])
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-9"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[2][i][gl_index].split(",")[5]), sv_gl_fam[2][0], sv_gl_fam[2][1])
                             candidate_single_SV_gt_fam_ls[2][i][gl_index] = gl_str
                             candidate_single_SV_gt_fam_ls[2][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[2][i][gq_index] = str(max(GQ))
@@ -1161,7 +1249,10 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                 if (sv_gl_fam[j][0]+sv_gl_fam[j][1]) != 0 and sv_gl_fam[j][1] < minimum_support_reads_list[j] and fam_sv_len[j] > length_limit :
                     _,gl_str,GQ,QUAL = cal_GL_3(sv_gl_fam[j][0], sv_gl_fam[j][1], svtype, minimum_support_reads_list[j], fam_sv_len[j])
                     gl_str_split = gl_str.split(",")
-                    gl_str_split[8] = "-2"
+                    if j == 0 :
+                        gl_str_split[8] = "-4"
+                    else :
+                        gl_str_split[8] = "-5"
                     candidate_single_SV_gt_fam_ls[j][i][gl_index] = ",".join(gl_str_split)
                     candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(GQ)
                     candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(QUAL)
@@ -1184,12 +1275,18 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         GL_P = [v/sum(sv_gp_fam[0]) for v in sv_gp_fam[0]]
                     if GL_P.index(max(GL_P)) == 2 :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '1/1'
-                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-1"
+                        if j == 0 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-1"
+                        else :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,100,0,1,1,0,0,0,-2"
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
                     else :
                         candidate_single_SV_gt_fam_ls[j][i][gt_index] = '0/1'
-                        candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-1"
+                        if j == 0 :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-1"
+                        else :
+                            candidate_single_SV_gt_fam_ls[j][i][gl_index] = "100,0,100,0,1,0,0,0,-2"
                         candidate_single_SV_gt_fam_ls[j][i][gq_index] = str(996)
                         candidate_single_SV_gt_fam_ls[j][i][qual_index] = str(255)
 
@@ -1220,7 +1317,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         c = GL_P[2]
                         roots = np.roots([a, b, c])
                         if GL_P.index(max(GL_P)) > 0 :
-                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[5]), sv_gl_fam[0][0], sv_gl_fam[0][1])
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-7"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")[5]), sv_gl_fam[0][0], sv_gl_fam[0][1])
                             candidate_single_SV_gt_fam_ls[0][i][gl_index] = gl_str
                             candidate_single_SV_gt_fam_ls[0][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[0][i][gq_index] = str(max(GQ))
@@ -1246,7 +1343,7 @@ def increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, svtype, minimu
                         c = GL_P[2]
                         roots = np.roots([a, b, c])
                         if GL_P.index(max(GL_P)) > 0 and (abs(fam_sv_len[0]-fam_sv_len[1]) / max(fam_sv_len[0],fam_sv_len[1])) < sv_len_distance_threshold:
-                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-3"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[5]), sv_gl_fam[1][0], sv_gl_fam[1][1])
+                            gl_str = "%d,%d,%d,%f,%f,%d,%f,%f,-8"%(PL[0], PL[1], PL[2], roots[0].real, roots[1].real, int(candidate_single_SV_gt_fam_ls[1][i][gl_index].split(",")[5]), sv_gl_fam[1][0], sv_gl_fam[1][1])
                             candidate_single_SV_gt_fam_ls[1][i][gl_index] = gl_str
                             candidate_single_SV_gt_fam_ls[1][i][gt_index] = Genotype[GL_P.index(max(GL_P))]
                             candidate_single_SV_gt_fam_ls[1][i][gq_index] = str(max(GQ))
@@ -1294,7 +1391,7 @@ def inconformity_mendel_modify(candidate_single_SV_gt_fam_ls, svtype, minimum_su
                 candidate_single_SV_gt_fam_ls[j][i][gt_index] = "0/0"
                 break
         
-def allele_correction(chr,member,candidate_single_SV_gt_ls, minimum_support_reads) :
+def allele_correction(chr,member,candidate_single_SV_gt_ls, minimum_support_reads, family_mode) :
     if chr not in chr_ls :
         return candidate_single_SV_gt_ls
     pre_index = -1
@@ -1320,7 +1417,7 @@ def allele_correction(chr,member,candidate_single_SV_gt_ls, minimum_support_read
                         if GT in ["0/1","1/1"] :
                             if member == 0 and candidate_single_SV_gt_ls[i][gt_index] == "0/0" and GT == "1/1" :
                                 sv_len_str_ls = candidate_single_SV_gt_ls[i][14].split(",")
-                                if sv_len_str_ls[1] == sv_len_str_ls[2] == "0" :
+                                if (family_mode == "M1" and sv_len_str_ls[1] == sv_len_str_ls[2] == "0") or (family_mode == "M2" and sv_len_str_ls[1] == "0") :
                                     continue
                             candidate_single_SV_gt_ls[i][gt_index] = GT
                             candidate_single_SV_gt_ls[i][gl_index] = GL

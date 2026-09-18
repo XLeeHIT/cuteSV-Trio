@@ -117,7 +117,7 @@ def correction_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matchin
             else :
                 pass
 
-def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matching, minimum_support_reads_list) :
+def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matching, minimum_support_reads_list, performing_phasing) :
     gl_index = 9
     gt_index = 8
     for i in range(len(candidate_single_SV_gt_fam_ls[0])) :
@@ -141,7 +141,13 @@ def resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, nearby_matchin
                 if int(float(gl_split_ls[7])) >= minimum_support_reads_list[0] and int(float(fa_split_ls[7])) <= 0 and int(float(mo_split_ls[7])) <= 0 :
                     gl_split_ls[8] = "1"
             elif "1/1" == family_genotype_ls[0] and ("0/0" == family_genotype_ls[1] or "0/0" == family_genotype_ls[2]) and not ("0/0" == family_genotype_ls[1] and "0/0" == family_genotype_ls[2]):
-                candidate_single_SV_gt_fam_ls[0][i][gt_index] = "0/1"
+                if not performing_phasing :
+                    candidate_single_SV_gt_fam_ls[0][i][gt_index] = "0/1"
+                else :
+                    if "0/0" == family_genotype_ls[1] :
+                        candidate_single_SV_gt_fam_ls[0][i][gt_index] = "0/1:0|1"
+                    else :
+                        candidate_single_SV_gt_fam_ls[0][i][gt_index] = "0/1:1|0"
                 gl_split_ls = candidate_single_SV_gt_fam_ls[0][i][gl_index].split(",")
                 gl_split_ls[-1] = "-4"
                 candidate_single_SV_gt_fam_ls[0][i][gl_index] = ",".join(gl_split_ls)

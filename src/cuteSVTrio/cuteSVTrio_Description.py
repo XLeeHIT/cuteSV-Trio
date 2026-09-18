@@ -248,6 +248,9 @@ def parseArgs(argv):
 		help = "The gold standard version of variant detection fitting.", 
 		default = None, 
 		type = str)
+	GroupAdvanced.add_argument('--output_read_quality',
+		help = "The option of outputing read quality of SV. This option conflicts with --performing_phasing. If both options are enabled, --performing_phasing takes precedence and the MAPQ-output option is ignored.",
+		action="store_true")
 	# ++++++INS++++++
 	GroupAdvanced.add_argument('--max_cluster_bias_INS', 
 		help = "Maximum distance to cluster read together for insertion.[%(default)s]", 
@@ -353,6 +356,8 @@ def Generation_VCF_header(file, contiginfo, sample, argv):
 	file.write("##INFO=<ID=Denovo,Number=1,Type=Integer,Description=\"The high confidence de novo class.\">\n")
 	file.write("##INFO=<ID=QUALLIST,Number=3,Type=Float,Description=\"Quality of all family members.\">\n")
 	file.write("##INFO=<ID=FILTERLIST,Number=3,Type=String,Description=\"Filter flags for all family members.\">\n")
+	file.write("##INFO=<ID=SUPPORTREAD,Number=.,Type=String,Description=\"The support read list.\">\n")
+	file.write("##INFO=<ID=SUPPORTMAPQ,Number=.,Type=String,Description=\"The support read MAPQ list.\">\n")
 	file.write("##FILTER=<ID=q5,Description=\"Quality below 5\">\n")
 	# FORMAT
 	# file.write("\n")

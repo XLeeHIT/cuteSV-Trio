@@ -680,7 +680,7 @@ def cleanup():
 SVTYPES=["DEL", "INS", "DUP", "INV", "TRA"]
 samfile=None
 def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, temp_dir, 
-                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions,family_mode,family_member):
+                task, min_siglength, merge_del_threshold, merge_ins_threshold, MaxSize, bed_regions,family_mode,family_member,output_read_quality):
     candidate = {}
     candidate["DEL"]=list()
     candidate["INS"]=list()
@@ -714,7 +714,10 @@ def single_pipe(sam_path, min_length, min_mapq, max_split_parts, min_read_len, t
                 is_primary = 0
                 if read.flag in [0, 16]:
                     is_primary = 1
-                reads_info_list.append((pos_start, pos_end, is_primary, "%s/%s/%s"%(family_mode,family_member,read.query_name), Chr_name))
+                if output_read_quality :
+                    reads_info_list.append((pos_start, pos_end, is_primary, "%s/%s/%s"%(family_mode,family_member,read.query_name), Chr_name, int(read.mapq)))
+                else :
+                    reads_info_list.append((pos_start, pos_end, is_primary, "%s/%s/%s"%(family_mode,family_member,read.query_name), Chr_name))
     pid=current_process().pid
     for sv_type in SVTYPES:
         with open("%s%s.%s.signatures/%s%s.pickle"%(temp_dir,family_mode,family_member,pid,sv_type),"ab") as f:
@@ -789,12 +792,12 @@ def process_process_sigs_type(args):
                         line="%s\t%s\t%s\t%d\t%s\t%d\t%s\n"%(ele[-2], ele[-1], ele[0], ele[1], ele[2], ele[3], ele[4])
                         print(line, end="",file=f)
     elif sv_type=="reads":
-        type_candidates.sort(key=lambda x: (x[-1]))#reads file not deduped, might be resolved later
+        type_candidates.sort(key=lambda x: (x[4]))#reads file not deduped, might be resolved later
         if write_old_sigs:
             with open("%s/%s.%s.reads.sigs"%(temporary_dir,family_mode,family_member), "w") as f:
                 if len(type_candidates)!=0:
                     for ele in type_candidates:
-                        line="%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3])
+                        line="%s\t%d\t%d\t%d\t%s\n"%(ele[4], ele[0], ele[1], ele[2], ele[3])
                         print(line,end="",file=f)
     index={}
     reads_count={}
@@ -806,16 +809,16 @@ def process_process_sigs_type(args):
             if len(type_candidates)!=0:
                 for i in range(len(type_candidates)):
                     ele=type_candidates[i]
-                    if ele[-1]!=chr:
+                    if ele[4]!=chr:
                         if chr==None:
-                            chr=ele[-1]
+                            chr=ele[4]
                         else:
                             dump=pickle.dumps(type_candidates[startl:i])
                             f.write(dump)
                             index[chr]=start
                             reads_count[chr]=i-startl
                             start+=len(dump)
-                            chr=ele[-1]
+                            chr=ele[4]
                             startl=i
                 pickle.dump(type_candidates[startl:],f)
                 index[chr]=start
@@ -932,7 +935,7 @@ def write_sigs(temporary_dir, candidates, reads_info_list, prefix=""):
             index["TRA"][chr]=start
     with open("%s/%sreads.sigs"%(temporary_dir,prefix), "w") as f:
         for ele in reads_info_list:
-            print("%s\t%d\t%d\t%d\t%s\n"%(ele[-1], ele[0], ele[1], ele[2], ele[3]), end="", file=f)
+            print("%s\t%d\t%d\t%d\t%s\n"%(ele[4], ele[0], ele[1], ele[2], ele[3]), end="", file=f)
     with open("%s/sigindex.pickle"%temporary_dir,"wb") as f:
         pickle.dump(index,f)
     return index
@@ -949,6 +952,31 @@ def remove_duplicates_sorted(sorted):
         i += 1
     
     return sorted[:j+1]
+
+def chrom_sort_key(chrom: str):
+    """
+    染色体排序：
+    1,2,...,22,X,Y,其他
+    """
+
+    c = chrom.strip()
+    if c.lower().startswith("chr"):
+        c = c[3:]
+    c_upper = c.upper()
+    # 1-22
+    if c_upper.isdigit():
+        num = int(c_upper)
+        if 1 <= num <= 22:
+            return (0, num)
+    # X
+    if c_upper == "X":
+        return (0, 23)
+    # Y
+    if c_upper == "Y":
+        return (0, 24)
+    # 其他特殊染色体/contig
+    return (1, c_upper)
+
 
 def remove_duplicates(data):
     seen = set()
@@ -1011,6 +1039,11 @@ def main_ctrl(args, argv):
     if args.output is None :
         raise FileNotFoundError("[Errno 2] Missing output vcf files.")
     
+    if args.performing_phasing :
+        run_output_read_quality = False
+    else :
+        run_output_read_quality = args.output_read_quality
+
     if args.sequencing_platform is None and args.gold_standard_version is None :
         run_max_cluster_bias_INS = args.max_cluster_bias_INS
         run_diff_ratio_merging_INS = args.diff_ratio_merging_INS
@@ -1143,7 +1176,8 @@ def main_ctrl(args, argv):
                             args.max_size,
                             None if bed_regions == None else bed_regions[i],
                             args.family_mode,
-                            family_member)]
+                            family_member,
+                            run_output_read_quality)]
                 analysis_pools.map_async(multi_run_wrapper, paras)
             pids = [process.pid for process in analysis_pools._pool]
             analysis_pools.close()
@@ -1224,7 +1258,8 @@ def main_ctrl(args, argv):
                         args.merge_del_threshold,
                         args.read_pos_interval,
                         args.family_mode,
-                        args.performing_phasing)]
+                        args.performing_phasing,
+                        run_output_read_quality)]
                 result.append(analysis_pools.map_async(run_del, para))
 
             # +++++INS+++++
@@ -1241,7 +1276,8 @@ def main_ctrl(args, argv):
                         args.read_pos_interval,
                         args.family_mode,
                         args.performing_phasing,
-                        args.all_ins_singnature_reads)]
+                        args.all_ins_singnature_reads,
+                        run_output_read_quality)]
                 result.append(analysis_pools.map_async(run_ins, para))
                 #logging.info(para)
             
@@ -1258,7 +1294,8 @@ def main_ctrl(args, argv):
                             args.gt_round,
                             args.read_pos_interval,
                             args.family_mode,
-                            args.performing_phasing)]
+                            args.performing_phasing,
+                            run_output_read_quality)]
                     result.append(analysis_pools.map_async(run_inv, para))
             
             
@@ -1274,7 +1311,8 @@ def main_ctrl(args, argv):
                             args.gt_round,
                             args.read_pos_interval,
                             args.family_mode,
-                            args.performing_phasing)]
+                            args.performing_phasing,
+                            run_output_read_quality)]
                     result.append(analysis_pools.map_async(run_dup, para))
             
             
@@ -1325,7 +1363,7 @@ def main_ctrl(args, argv):
             phasing_results = phasing_fam_results[family_member_i]
             for chr in phasing_results.keys() :
                 phasing_results[chr] = sorted(phasing_results[chr], key=lambda x: int(x[2]))
-                phasing_results[chr] = allele_correction(chr,family_member_i,phasing_results[chr],minimum_support_reads_list[family_member_i])
+                phasing_results[chr] = allele_correction(chr,family_member_i,phasing_results[chr],minimum_support_reads_list[family_member_i],args.family_mode)
         for no_phasing_results in no_phasing_fam_results :
             for chr in no_phasing_results.keys() :
                 no_phasing_results[chr] = sorted(no_phasing_results[chr], key=lambda x: x[2])
@@ -1575,6 +1613,7 @@ def main_ctrl(args, argv):
         logging.info("Writing to your output file.")
         with open("%s/%s.contigINFO.pickle"%(temporary_dir,args.family_mode), "rb") as f:
             contigINFO = pickle.load(f)
+            contigINFO = sorted(contigINFO,key=lambda x: (chrom_sort_key(x[0])))
 
         svid = dict()
         svid["INS"] = 0
@@ -1582,14 +1621,14 @@ def main_ctrl(args, argv):
         svid["BND"] = 0
         svid["DUP"] = 0
         svid["INV"] = 0
-        chroms=sorted(results.keys())
+        chroms=sorted(fam_results[0].keys(), key=chrom_sort_key)
         os.mkdir("%s%s.results"%(temporary_dir,args.family_mode))
         
         for chrom in chroms:
             res_ls = []
             for i in range(len(fam_results)) :
                 res_ls.append(fam_results[i][chrom])
-            generate_output(args, res_ls, chrom, temporary_dir)
+            generate_output(args, res_ls, chrom, temporary_dir, run_output_read_quality)
         
         file = open(args.output, 'w')
         Generation_VCF_header(file, contigINFO, args.sample, argv)

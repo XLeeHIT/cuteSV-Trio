@@ -111,6 +111,73 @@ def confirm_haplotype_source(fam_genotype_ls, family_mode, family_member) :
 def gt_homozygous(genotype_ls) :
     return max(abs(genotype_ls[0]-1),abs(genotype_ls[1]-1)) < genotype_threshold or max(abs(genotype_ls[0]-0),abs(genotype_ls[1]-0)) < genotype_threshold
 
+def gt_heterozygous(genotype_ls):
+    return ((genotype_ls[0] < genotype_threshold and genotype_ls[1] > 1 - genotype_threshold) or
+            (genotype_ls[1] < genotype_threshold and genotype_ls[0] > 1 - genotype_threshold))
+
+def gt_homozygous_ref(genotype_ls):
+    return genotype_ls[0] < genotype_threshold and genotype_ls[1] < genotype_threshold
+
+def is_child_denovo_het(fam_genotype_ls, family_mode, family_member):
+    """Child 0/1 or 1/0, both parents 0/0. Only meaningful for complete trios."""
+    if family_mode != "M1" or family_member != "1":
+        return False
+    return (gt_heterozygous(fam_genotype_ls[0]) and
+            gt_homozygous_ref(fam_genotype_ls[1]) and
+            gt_homozygous_ref(fam_genotype_ls[2]))
+
+def assign_denovo_by_linked_reads(hap_father, hap_mother, genotype_ls, candidate_single_SV_ls,
+                                  phased_flag, block_no,
+                                  var_read_nameds_index, var_read_poss_index,
+                                  non_read_nameds_index, non_read_poss_index,
+                                  min_linked_reads=2, score_margin=1):
+    """Assign a de novo het only when read linkage favors paternal or maternal haplotype.
+
+    paternal_score: reads consistent with variant on paternal haplotype
+    maternal_score: reads consistent with variant on maternal haplotype
+    If evidence is tied/weak, leave the site unphased.
+    """
+    paternal_score = len(hap_father[6]) + len(hap_mother[8])
+    maternal_score = len(hap_mother[6]) + len(hap_father[8])
+    if max(paternal_score, maternal_score) < min_linked_reads:
+        return False
+    if abs(paternal_score - maternal_score) < score_margin:
+        return False
+
+    var_names = candidate_single_SV_ls[var_read_nameds_index].split(",") if candidate_single_SV_ls[var_read_nameds_index] != '' else []
+    var_poss = candidate_single_SV_ls[var_read_poss_index].split(",") if candidate_single_SV_ls[var_read_poss_index] != '' else []
+    non_names = candidate_single_SV_ls[non_read_nameds_index].split(",") if candidate_single_SV_ls[non_read_nameds_index] != '' else []
+    non_poss = candidate_single_SV_ls[non_read_poss_index].split(",") if candidate_single_SV_ls[non_read_poss_index] != '' else []
+
+    alt_idx = 0 if genotype_ls[0] > genotype_ls[1] else 1
+    ref_idx = 1 - alt_idx
+    hap_father[1] = phased_flag
+    hap_mother[1] = phased_flag
+    hap_father[3] = block_no
+    hap_mother[3] = block_no
+
+    if paternal_score > maternal_score:
+        # de novo allele is on the paternal haplotype
+        hap_father[0] = genotype_ls[alt_idx]
+        hap_mother[0] = genotype_ls[ref_idx]
+        hap_father[2] = alt_idx
+        hap_mother[2] = alt_idx
+        hap_father[6], hap_father[7] = var_names, var_poss
+        hap_father[8], hap_father[9] = [], []
+        hap_mother[6], hap_mother[7] = [], []
+        hap_mother[8], hap_mother[9] = non_names, non_poss
+    else:
+        # de novo allele is on the maternal haplotype
+        hap_father[0] = genotype_ls[ref_idx]
+        hap_mother[0] = genotype_ls[alt_idx]
+        hap_father[2] = ref_idx
+        hap_mother[2] = ref_idx
+        hap_father[6], hap_father[7] = [], []
+        hap_father[8], hap_father[9] = non_names, non_poss
+        hap_mother[6], hap_mother[7] = var_names, var_poss
+        hap_mother[8], hap_mother[9] = [], []
+    return True
+
 def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode, read_pos_interval, minimum_support_reads_list, phase_all_ctgs, parents_phasing, family_bams, remap_merge_k, remap_minimizer_window, assembly_correction_threshold, performing_assembly, multiple_phasing) :
     start_time = time.time()
     chr_ls = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","X","Y","chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX","chrY"]
@@ -231,9 +298,9 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
         
         if family_mode == "M1" :
             if parents_phasing :
-                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list)
+                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, False, minimum_support_reads_list, True)
             else :
-                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+                resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, True)
 
     else :
         phasing_candidate_fam_SV(chr,
@@ -248,7 +315,7 @@ def genetic_phasing_family(path, chr, candidate_single_SV_gt_fam_ls, family_mode
                                  False,
                                  parents_phasing)
         if family_mode == "M1" :
-            resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+            resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, True)
         logging.info("no phasing %s"%(chr))
         return (chr,candidate_single_SV_gt_fam_ls)
     
@@ -269,7 +336,7 @@ def genetic_no_phasing_family(chr, candidate_single_SV_gt_fam_ls, family_mode, r
                              False,
                              True)
     if family_mode == "M1" :
-        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, True)
     logging.info("Finished no phasing %s:%f."%(chr, time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
 
@@ -335,7 +402,7 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
         if family_member not in ["1","2","3"] :
             logging.info("Wrong family member!")
             return
-    elif family_mode == "M1" :
+    elif family_mode == "M2" :
         if family_member not in ["1","2"] :
             logging.info("Wrong family member!")
             return
@@ -384,13 +451,23 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
             else :
                 continue
         else :
+            is_denovo_het = is_child_denovo_het(fam_genotype_ls, family_mode, family_member)
             if phase_type == 1 :
                 is_con, gen_source = confirm_haplotype_source(fam_genotype_ls,family_mode,family_member)
             else :
-                is_con, gen_source = family_nearest_match(fam_genotype_ls,family_mode,family_member)
+                # A de novo heterozygote cannot be assigned by Mendelian nearest match.
+                # It should be assigned only by read linkage, otherwise left unphased.
+                if is_denovo_het:
+                    is_con, gen_source = False, -1
+                else:
+                    is_con, gen_source = family_nearest_match(fam_genotype_ls,family_mode,family_member)
             if not is_con :
-                phased_sv_haplotype_father.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
-                phased_sv_haplotype_mother.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
+                if phase_type == 1:
+                    phased_sv_haplotype_father.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
+                    phased_sv_haplotype_mother.append([0,0,-1,0,candidate_single_SV_ls[1],candidate_single_SV_ls[2],[],[],[],[],[],[]])
+                else:
+                    # keep the existing unphased slot; do not append in phase_type 2
+                    continue
             else :
                 if fam_genotype_ls[family_index][gen_source] < genotype_threshold :
                     if phase_type == 1 :
@@ -459,7 +536,18 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                         phased_sv_haplotype_mother_forward[sv_i-1][1] = 6
                 continue
             candidate_single_SV_ls = candidate_single_SV_gt_fam_ls[family_index][sv_i]
-            if phased_sv_haplotype_father_forward[sv_i][1] == 4 and len(phased_sv_haplotype_father_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 :
+            fam_genotype_ls_for_denovo = []
+            if family_mode == "M1":
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[2][sv_i][gl_index].split(",")[3:5]])
+            if is_child_denovo_het(fam_genotype_ls_for_denovo, family_mode, family_member):
+                if not assign_denovo_by_linked_reads(phased_sv_haplotype_father_forward[sv_i], phased_sv_haplotype_mother_forward[sv_i],
+                                                     genotype_ls, candidate_single_SV_ls, phased_flag, block_no,
+                                                     var_read_nameds_index, var_read_poss_index,
+                                                     non_read_nameds_index, non_read_poss_index):
+                    continue
+            elif phased_sv_haplotype_father_forward[sv_i][1] == 4 and len(phased_sv_haplotype_father_forward[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 :
                 if phased_sv_haplotype_father_forward[sv_i][0] < genotype_threshold :
                     phased_sv_haplotype_father_forward[sv_i][8] = candidate_single_SV_ls[non_read_nameds_index].split(",") if candidate_single_SV_ls[non_read_nameds_index] != '' else []
                     phased_sv_haplotype_father_forward[sv_i][9] = candidate_single_SV_ls[non_read_poss_index].split(",") if candidate_single_SV_ls[non_read_poss_index] != '' else []
@@ -616,7 +704,18 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
                         phased_sv_haplotype_mother_reverse[sv_i+1][1] = 6
                 continue
             candidate_single_SV_ls = candidate_single_SV_gt_fam_ls[family_index][sv_i]
-            if phased_sv_haplotype_father_reverse[sv_i][1] == 4 and len(phased_sv_haplotype_father_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 :
+            fam_genotype_ls_for_denovo = []
+            if family_mode == "M1":
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls_for_denovo.append([float(x) for x in candidate_single_SV_gt_fam_ls[2][sv_i][gl_index].split(",")[3:5]])
+            if is_child_denovo_het(fam_genotype_ls_for_denovo, family_mode, family_member):
+                if not assign_denovo_by_linked_reads(phased_sv_haplotype_father_reverse[sv_i], phased_sv_haplotype_mother_reverse[sv_i],
+                                                     genotype_ls, candidate_single_SV_ls, phased_flag, block_no,
+                                                     var_read_nameds_index, var_read_poss_index,
+                                                     non_read_nameds_index, non_read_poss_index):
+                    continue
+            elif phased_sv_haplotype_father_reverse[sv_i][1] == 4 and len(phased_sv_haplotype_father_reverse[sv_i][6]) == 0 and len(phased_sv_haplotype_father_forward[sv_i][8]) == 0 :
                 if phased_sv_haplotype_father_reverse[sv_i][0] < genotype_threshold :
                     phased_sv_haplotype_father_reverse[sv_i][8] = candidate_single_SV_ls[non_read_nameds_index].split(",") if candidate_single_SV_ls[non_read_nameds_index] != '' else []
                     phased_sv_haplotype_father_reverse[sv_i][9] = candidate_single_SV_ls[non_read_poss_index].split(",") if candidate_single_SV_ls[non_read_poss_index] != '' else []
@@ -838,19 +937,26 @@ def genetic_phasing_member(chr, candidate_single_SV_gt_fam_ls, phased_sv_haploty
         if phased_sv_haplotype_father[sv_i][1] == 0 and phased_sv_haplotype_mother[sv_i][1] == 0 :
             fam_genotype_ls = []
             if family_mode == "M1" :
-                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][j][gl_index].split(",")[3:5]])
-                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][j][gl_index].split(",")[3:5]])
-                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[2][j][gl_index].split(",")[3:5]])
+                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[2][sv_i][gl_index].split(",")[3:5]])
             elif family_mode == "M2" :
-                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][j][gl_index].split(",")[3:5]])
-                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][j][gl_index].split(",")[3:5]])
-            nearest_match_res = family_nearest_match(fam_genotype_ls,family_mode,family_member)
-            phased_sv_haplotype_father[sv_i][0] = nearest_match_res[0]
-            phased_sv_haplotype_mother[sv_i][0] = nearest_match_res[1]
-            phased_sv_haplotype_father[sv_i][1] = 7
-            phased_sv_haplotype_mother[sv_i][1] = 7
-            phased_sv_haplotype_father[sv_i][3] = -1
-            phased_sv_haplotype_mother[sv_i][3] = -1
+                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[0][sv_i][gl_index].split(",")[3:5]])
+                fam_genotype_ls.append([float(x) for x in candidate_single_SV_gt_fam_ls[1][sv_i][gl_index].split(",")[3:5]])
+            if is_child_denovo_het(fam_genotype_ls, family_mode, family_member):
+                # Do not force an unresolved de novo heterozygote to the paternal haplotype.
+                # Keep source = -1 and state = 0; output code can display it as unphased if desired.
+                continue
+            is_con, gen_source = family_nearest_match(fam_genotype_ls,family_mode,family_member)
+            if is_con:
+                phased_sv_haplotype_father[sv_i][0] = fam_genotype_ls[family_index][gen_source]
+                phased_sv_haplotype_mother[sv_i][0] = fam_genotype_ls[family_index][1-gen_source]
+                phased_sv_haplotype_father[sv_i][2] = gen_source
+                phased_sv_haplotype_mother[sv_i][2] = gen_source
+                phased_sv_haplotype_father[sv_i][1] = 7
+                phased_sv_haplotype_mother[sv_i][1] = 7
+                phased_sv_haplotype_father[sv_i][3] = -1
+                phased_sv_haplotype_mother[sv_i][3] = -1
     
     return phased_sv_haplotype_father,phased_sv_haplotype_mother
 

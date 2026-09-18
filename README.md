@@ -255,6 +255,13 @@ v0.5.0 (December 10, 2025) :
 v1.0.0 (April 16, 2026) : 
 1. The official version accompanying the formal paper submission.
 
+v1.1.0 (September 18, 2026)
+1. Change the chromosome order to the more common 1-22-X-Y-other chromosome order.
+2. Fixed several bugs related to the phasing functionality.
+3. Fixed a bug causing missing information in the INFO field for INV records.
+4. Revised the display logic of *CorrectType* to facilitate the identification of the three Mendelian correction outcomes.
+5. Added an optional parameter to control the output of MAPQ values for SV-supporting reads.
+
 *Upcoming update*
 1. The *-g* parameter was added to support the transition of the HG002 gold-standard benchmark from NIST to T2T around 2025. As the NIST benchmark is now largely deprecated, this parameter will be removed in a future release.
 

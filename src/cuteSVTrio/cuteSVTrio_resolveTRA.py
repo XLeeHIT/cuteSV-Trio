@@ -135,7 +135,7 @@ def resolution_TRA(path, chr_1, read_count, overlap_size, max_cluster_bias, mini
                                                    gt_round)
             candidate_single_SV_fam_ls[i][j][7:12] = [str(DR),str(GT),str(GL),str(GQ),str(QUAL)]
 
-    resolution_mendel(candidate_single_SV_fam_ls, family_mode, True, minimum_support_reads_list)
+    resolution_mendel(candidate_single_SV_fam_ls, family_mode, True, minimum_support_reads_list, performing_phasing)
 
     logging.info("Finished calling %s:%s:%f."%(chr_1, "TRA/BND", time.time()-start_time))
     return (chr_1,candidate_single_SV_fam_ls)

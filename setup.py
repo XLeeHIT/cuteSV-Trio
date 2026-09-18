@@ -8,7 +8,7 @@ with open('README.md') as f:
 
 setup(
     name = "cuteSVTrio",
-    version = "1.0.0",
+    version = "1.1.0",
     description = "Long-read-based human genomic structural variation detection with cuteSVTrio",
     author = "Lixin",
     author_email = "xinli01@stu.hit.edu.cn",
@@ -22,6 +22,6 @@ setup(
     long_description = readme,
     long_description_content_type = 'text/markdown',
     zip_safe = False,
-    #install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn', 'pyabpoa', 'mappy'],
-    install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn'],
+    install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn', 'pyabpoa', 'mappy'],
+    #install_requires = ['scipy', 'pysam', 'Biopython', 'Cigar', 'numpy', 'pyvcf3', 'scikit-learn'],
 )

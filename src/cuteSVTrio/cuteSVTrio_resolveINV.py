@@ -7,7 +7,7 @@ import pickle
 import copy
 import time
 
-def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing):
+def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_reads_list, sv_size, MaxSize, gt_round, read_pos_interval, family_mode, performing_phasing, output_read_quality):
     '''
     cluster INV
     ************************************************************************
@@ -111,7 +111,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     candidate_single_SV_gt_fam_ls = []
     for i in range(len(family_member_ls)) :
         family_member = family_member_ls[i]
-        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing))
+        candidate_single_SV_gt_fam_ls.append(call_gt(path, chr, candidate_single_SV_fam_ls[i], candidate_single_SV_fam_ls[0], 1000, family_mode, family_member, minimum_support_reads_list, performing_phasing, output_read_quality))
     standard_list = 0
     for i in range(len(candidate_single_SV_gt_fam_ls)) :
         if len(candidate_single_SV_gt_fam_ls[i]) != 0 :
@@ -133,7 +133,7 @@ def resolution_INV(path, chr, read_count, max_cluster_bias, minimum_support_read
     increase_sigs_through_pedigree(candidate_single_SV_gt_fam_ls, 'INV', minimum_support_reads_list, family_mode)
     unsolvable_correction(candidate_single_SV_gt_fam_ls, 'INV', family_mode)
     if not performing_phasing and family_mode == "M1" :
-        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list)
+        resolution_mendel(candidate_single_SV_gt_fam_ls, family_mode, True, minimum_support_reads_list, performing_phasing)
     
     logging.info("Finished calling %s:%s:%f."%(chr, "INV", time.time()-start_time))
     return (chr,candidate_single_SV_gt_fam_ls)
@@ -235,7 +235,7 @@ def generate_semi_inv_cluster(semi_inv_cluster, chr, read_count, max_cluster_bia
 def run_inv(args):
     return resolution_INV(*args)
 
-def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing):
+def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_cluster_bias, family_mode, family_member, minimum_support_reads_list, performing_phasing, output_read_quality):
     with open("%s%s.%s.%s.pickle"%(temporary_dir,family_mode,family_member,"sigindex"), 'rb') as f:
         sigs_index=pickle.load(f)
         f.close()    
@@ -251,7 +251,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
         svs_list.append((max(item[2] - max_cluster_bias, 0), item[2] + max_cluster_bias))
     for item in candidate_info_SV:
         svs_list.append((max(item[7] - max_cluster_bias, 0), item[7] + max_cluster_bias))
-    iteration_dict, primary_num_dict, cover_dict, overlap_dict, cover_pos_dict = overlap_cover(svs_list, reads_list, performing_phasing) # both key(sv idx), value(set(read id))
+    iteration_dict, primary_num_dict, cover_dict, overlap_dict, cover_pos_dict, read_mapq_dict = overlap_cover(svs_list, reads_list, performing_phasing, output_read_quality) # both key(sv idx), value(set(read id))
     assert len(cover_dict) == 2 * len(candidate_info_SV), "overlap length error"
     candidate_single_SV_length = len(candidate_info_SV)
     for idx in range(candidate_single_SV_length):
@@ -267,7 +267,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
     read_id_dict = dict()
     for i in range(len(candidate_single_SV)):
         read_id_dict[i] = candidate_single_SV[i][6]
-    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, "INV", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing)
+    assign_list = assign_gt(iteration_dict, primary_num_dict, cover_dict, read_id_dict, cover_pos_dict, read_mapq_dict, "INV", family_member, minimum_support_reads_list[int(family_member)-1], performing_phasing, output_read_quality)
     # [[DV, DR, GT, GL, GQ, QUAL] ...]
     assert len(candidate_single_SV) == len(assign_list), "assign error"
     candidate_single_SV_gt = list()
@@ -277,7 +277,7 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
                                     candidate_info_SV[i][1], 
                                     str(int(candidate_info_SV[i][2])), 
                                     str(int(candidate_info_SV[i][3])), 
-                                    str(candidate_single_SV[i][4]), 
+                                    str(assign_list[i][0]), #from:str(candidate_single_SV[i][4]), 
                                     candidate_single_SV[i][5],
                                     '',
                                     str(assign_list[i][1]),
@@ -290,6 +290,10 @@ def call_gt(temporary_dir, chr, candidate_single_SV, candidate_info_SV, max_clus
         candidate_single_SV_gt[i].append(candidate_single_SV[i][9])
         if performing_phasing :
             candidate_single_SV_gt[i].append(','.join([str(x) for x in candidate_single_SV[i][8]]))
+            candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
+            candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
+        elif output_read_quality:
+            candidate_single_SV_gt[i].append('')
             candidate_single_SV_gt[i].append(','.join(assign_list[i][6]))
             candidate_single_SV_gt[i].append(','.join([str(x) for x in assign_list[i][7]]))
         else :
