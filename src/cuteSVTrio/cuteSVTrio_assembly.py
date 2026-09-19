@@ -102,22 +102,11 @@ def correct_homogt_allsv_denovo(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
 def correct_hetegt_allsv_denovo(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, father_bam, mother_bam, ref_aligner, read_extension_scope, remap_merge_k, remap_minimizer_window, minimum_support_reads_list) :
     pass
 
-def split_reference_chromosomes(temporary_dir, reference) :
-    pass
-
 def sv_from_cigar(chr, cigar_str, ref_start, sv_min_size, origin_ref_start, sequence, reference):
     pass
 
 # 按照同类sv的位置和长度的临近关系，去除相近的相似sv
 def remove_redundant_sv(chr, sv_ls) :
-    pass
-
-# 去除相邻的完全相同的变异记录
-def remove_redundant_samesv(chr, sv_ls, family_mode) :
-    pass
-
-# 去除位置偏差修正前的记录
-def remove_redundant_pos(chr, sv_ls, family_mode) :
     pass
 
 def run_assembly(args) :

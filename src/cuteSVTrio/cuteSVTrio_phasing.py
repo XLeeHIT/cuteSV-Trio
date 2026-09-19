@@ -1,6 +1,5 @@
 from cuteSVTrio.cuteSVTrio_genotype import cal_GL_2,normalize_log10_probs
 from cuteSVTrio.cuteSVTrio_mendel import resolution_mendel
-from cuteSVTrio.cuteSVTrio_assembly import redetect_nearby_sv
 import numpy as np
 from math import log10,ceil
 import logging

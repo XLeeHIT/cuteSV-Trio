@@ -1302,23 +1302,6 @@ def correct_hetegt_allsv_denovo(chr, tmp_svs, fa_hap_ls, mo_hap_ls, child_bam, f
 
     return tmp_svs
 
-def split_reference_chromosomes(temporary_dir, reference) :
-    with open(reference, "r") as infile:
-        records = SeqIO.parse(infile, "fasta")
-
-        chromosomes = {}
-
-        for record in records:
-            chrom_name = record.id
-            if chrom_name not in chromosomes:
-                chromosomes[chrom_name] = []
-            chromosomes[chrom_name].append(record)
-
-        for chrom_name, chrom_records in chromosomes.items():
-            output_file = f"{temporary_dir}/{chrom_name}.fasta"
-            with open(output_file, "w") as outfile:
-                SeqIO.write(chrom_records, outfile, "fasta")
-
 def parse_cigar(cigar_str):
     cigar_ops = []
     for length, op in re.findall(r'(\d+)([MIDNSHP=X])', cigar_str):
@@ -1375,60 +1358,6 @@ def remove_redundant_sv(chr, sv_ls) :
                 sv_ls[s_i][8] = "1/0" + sv_ls[s_i][8][3:]
         filtered_sv_ls.append(sv_ls[s_i])
     return filtered_sv_ls
-
-# 去除相邻的完全相同的变异记录
-def remove_redundant_samesv(chr, sv_ls, family_mode) :
-    family_mode_index_ls = ["M1","M2"]
-    family_member_set = [["1","2","3"],["1","2"]]
-    family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
-    filtered_sv_ls = [[] for x in family_member_ls]
-    s_i = 0
-    while(True) :
-        if s_i == len(sv_ls[0])-1 :
-            for x in range(len(family_member_ls)) :
-                filtered_sv_ls[x].append(sv_ls[x][s_i])
-        if s_i >= len(sv_ls[0])-1 :
-            break
-        if sv_ls[0][s_i][1] == sv_ls[0][s_i+1][1] and int(sv_ls[0][s_i][2]) == int(sv_ls[0][s_i+1][2]) and int(sv_ls[0][s_i][3]) == int(sv_ls[0][s_i+1][3]) :
-            if sv_ls[0][s_i][gl_index].split(",")[8].split("+")[0] in ["-4","-5","-6","-7","-8","-9","-10","-11","-12","-13","-14"] :
-                for x in range(len(family_member_ls)) :
-                    filtered_sv_ls[x].append(sv_ls[x][s_i])
-            else :
-                for x in range(len(family_member_ls)) :
-                    filtered_sv_ls[x].append(sv_ls[x][s_i+1])
-            s_i += 2
-        else :
-            for x in range(len(family_member_ls)) :
-                filtered_sv_ls[x].append(sv_ls[x][s_i])
-            s_i += 1
-    return filtered_sv_ls
-
-# 去除位置偏差修正前的记录
-def remove_redundant_pos(chr, sv_ls, family_mode) :
-    family_mode_index_ls = ["M1","M2"]
-    family_member_set = [["1","2","3"],["1","2"]]
-    family_member_ls = family_member_set[family_mode_index_ls.index(family_mode)]
-    redundant_index = []
-    for n_s in range(len(sv_ls[0])) :
-        gl_assembly_ls = sv_ls[0][n_s][gl_index].split(",")[8].split("+")
-        if len(gl_assembly_ls) > 1 :
-            ass_pos = gl_assembly_ls[1]
-            ass_len = gl_assembly_ls[2]
-            for i in range(len(sv_ls[0])) :
-                if sv_ls[0][i][2] == ass_pos and sv_ls[0][i][3] == ass_len and sv_ls[0][n_s][1] == sv_ls[0][i][1] and sv_ls[0][n_s][gt_index] == sv_ls[0][i][gt_index]:
-                    redundant_index.append(i)
-            sv_ls[0][n_s][gl_index] = ",".join(sv_ls[0][n_s][gl_index].split(",")[:-1] + ["-4"])
-    new_ls = [[] for  x in family_member_ls]
-    for n_s in range(len(sv_ls[0])) :
-        if n_s not in redundant_index :
-            if family_mode == "M1" :
-                new_ls[0].append(sv_ls[0][n_s])
-                new_ls[1].append(sv_ls[1][n_s])
-                new_ls[2].append(sv_ls[2][n_s])
-            else :
-                new_ls[0].append(sv_ls[0][n_s])
-                new_ls[1].append(sv_ls[1][n_s])
-    return new_ls
 
 def run_assembly(args) :
     return redetect_nearby_sv(*args)

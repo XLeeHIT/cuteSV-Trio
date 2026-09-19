@@ -4,8 +4,8 @@
  * All rights Reserved, Designed By HIT-Bioinformatics   
  * @Title: cuteSVTrio 
  * @author: Lixin
- * @date: Sep. 18th 2026
- * @version V1.1.0
+ * @date: Sep. 19th 2026
+ * @version V1.1.1
 '''
 
 
@@ -15,9 +15,9 @@ from cuteSVTrio.cuteSVTrio_resolveINV import run_inv
 from cuteSVTrio.cuteSVTrio_resolveTRA import run_tra
 from cuteSVTrio.cuteSVTrio_resolveINDEL import run_ins, run_del
 from cuteSVTrio.cuteSVTrio_resolveDUP import run_dup
-from cuteSVTrio.cuteSVTrio_genotype import generate_output, generate_pvcf, load_valuable_chr, load_bed, Generation_VCF_header, allele_correction
+from cuteSVTrio.cuteSVTrio_genotype import generate_output, generate_pvcf, load_valuable_chr, load_bed, Generation_VCF_header, allele_correction, remove_redundant_samesv, remove_redundant_pos, split_reference_chromosomes
 from cuteSVTrio.cuteSVTrio_phasing import run_phasing,genetic_phasing_family,genetic_no_phasing_family, generate_haplotype_read_names
-from cuteSVTrio.cuteSVTrio_assembly import split_reference_chromosomes, remove_redundant_samesv, run_assembly, remove_redundant_pos
+from cuteSVTrio.cuteSVTrio_assembly import run_assembly
 import pysam
 from multiprocessing import Pool,Manager,Queue, current_process
 import os
@@ -461,13 +461,17 @@ def analysis_split_read(split_read, SV_size, RLength, read_name, candidate, MaxS
                                         ele_2[4]))
 
 def parse_cigar(cigar_str):
-    return [
-        (int(length), op)
-        for length, op in re.findall(
-            r'(\d+)([MIDNSHP=X])',
-            cigar_str
-        )
-    ]
+    seq=[]
+    for length, op in re.findall(
+        r'(\d+)([MIDNSHP=X])',
+        cigar_str
+    ):
+        length=int(length)
+        if seq and seq[-1][1]==op:
+            seq[-1]=(seq[-1][0]+length,op)
+        else:
+            seq.append((length,op))
+    return seq
 
 def acquire_clip_pos(deal_cigar):
     #seq = list(cigar.Cigar(deal_cigar).items())
@@ -1285,6 +1289,7 @@ def main_ctrl(args, argv):
                         run_output_read_quality)]
                 result.append(analysis_pools.map_async(run_del, para))
 
+
             # +++++INS+++++
             for chr in chr_ls["INS"]:
                 para = [(temporary_dir, 
@@ -1302,8 +1307,8 @@ def main_ctrl(args, argv):
                         args.all_ins_singnature_reads,
                         run_output_read_quality)]
                 result.append(analysis_pools.map_async(run_ins, para))
-                #logging.info(para)
-            
+
+
             if not args.performing_assembly :
                 # +++++INV+++++
                 for chr in chr_ls["INV"]:

@@ -1,3 +1,20 @@
+Metadata-Version: 2.1
+Name: cuteSVTrio
+Version: 1.1.1
+Summary: Long-read-based human genomic structural variation detection with cuteSVTrio
+Home-page: https://github.com/XLeeHIT/cuteSVTrio
+Author: Lixin
+Author-email: xinli01@stu.hit.edu.cn
+License: MIT
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: scipy
+Requires-Dist: pysam
+Requires-Dist: Biopython
+Requires-Dist: numpy
+Requires-Dist: pyvcf3
+Requires-Dist: scikit-learn
+
 # cuteSV-Trio: Haplotype-Resolved and *De Novo* Structural Variant Detection from Low-Coverage Long-Read Sequencing of Family Trios
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)

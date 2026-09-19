@@ -3,11 +3,11 @@
  * @Title:  cuteSVTrio_Description.py
  * @author: Lixin
  * @date: Sep. 18th 2026
- * @version V1.1.0
+ * @version V1.1.1
 '''
 import argparse
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 
 class cuteSVTriodp(object):
 	'''

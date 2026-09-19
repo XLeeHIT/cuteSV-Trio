@@ -1,0 +1,6 @@
+scipy
+pysam
+Biopython
+numpy
+pyvcf3
+scikit-learn

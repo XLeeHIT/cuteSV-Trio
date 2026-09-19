@@ -8,7 +8,7 @@ with open('README.md') as f:
 
 setup(
     name = "cuteSVTrio",
-    version = "1.1.0",
+    version = "1.1.1",
     description = "Long-read-based human genomic structural variation detection with cuteSVTrio",
     author = "Lixin",
     author_email = "xinli01@stu.hit.edu.cn",
