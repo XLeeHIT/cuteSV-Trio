@@ -76,7 +76,7 @@ git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSV-Trio/ && python -m
 ```
 
 ### Option 2. Install by BioConda
-
+*Conda package is still undergoing the corresponding review process, which is expected to require approximately one to two additional weeks*
 ```
 conda install cutesv-trio
 ```
@@ -268,6 +268,7 @@ v1.1.1 (September 19, 2026) :
 
 *Upcoming update*
 1. The *-g* parameter was added to support the transition of the HG002 gold-standard benchmark from NIST to T2T around 2025. As the NIST benchmark is now largely deprecated, this parameter will be removed in a future release.
+2. Added comprehensive null/empty-value checks and error handling for required parameters.
 
 ------
 
