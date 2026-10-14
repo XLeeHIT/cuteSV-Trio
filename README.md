@@ -76,9 +76,9 @@ git clone https://github.com/XLeeHIT/cuteSV-Trio && cd cuteSV-Trio/ && python -m
 ```
 
 ### Option 2. Install by BioConda
-*Conda package is still undergoing the corresponding review process, which is expected to require approximately one to two additional weeks*
+
 ```
-conda install cutesv-trio
+conda install cuteSVTrio 
 ```
 
 ### Option 3. Install by PyPi
