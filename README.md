@@ -6,7 +6,8 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS-brightgreen)
 [![PyPI version](https://img.shields.io/pypi/v/cuteSVTrio)](https://pypi.org/project/cuteSVTrio/1.0.0/)
-
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/svpg/badges/latest_release_date.svg)](https://anaconda.org/bioconda/svpg)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/svpg/badges/downloads.svg)](https://anaconda.org/bioconda/svpg)
 
 <div align="center">
   <a target="_blank">
