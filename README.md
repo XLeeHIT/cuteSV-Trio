@@ -38,7 +38,7 @@
 
 ## Introduction
 
-Long-read sequencing technologies have advanced structural variant (SV) detection into an era of full-spectrum characterization. While family trio-based high-coverage sequencing enhances SV detection resolution, its prohibitive cost and limited utilization of genetic intrinsic properties pose significant barriers to widespread adoption. To address this challenge, we introduce cuteSV-Trio, a haplotype-resolved and *de novo* SV caller designed for low-coverage long-read trio sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel family-wide clustering strategies to achieve high-precision haplotype-resolved SV detection and outstanding *de novo* SV identification. Benchmarking across orthogonal datasets demonstrates that cuteSV-Trio outperforms existing SV calling methods by 0.32%-25.92% in Genotype-F1 score. Moreover, cuteSV-Trio reduces haplotype-phasing error rates by ~17% and detects ~28% more precise *de novo* SVs. In addition, it is well-suited for constructing comprehensive population SV atlases and high-quality reference panels, improving the imputation accuracy by 33%. By dramatically reducing sequencing costs while improving detection accuracy, cuteSV-Trio represents a paradigm shift for trio-based and population-scale SV studies.
+Long-read sequencing technologies have advanced structural variant (SV) detection into an era of full-spectrum characterization. While family trio-based high-coverage sequencing enhances SV detection resolution, its prohibitive cost and limited exploitation of intrinsic genetic properties pose significant barriers to widespread adoption. To address this challenge, we introduce cuteSV-Trio, a haplotype-resolved and de novo SV caller designed for low-coverage long-read trio sequencing data. cuteSV-Trio leverages Mendelian inheritance patterns and haplotype linkage information through novel family-wide clustering strategies to achieve high-precision haplotype-resolved SV detection and robust de novo SV identification. Benchmarking across orthogonal datasets demonstrates that cuteSV-Trio outperforms existing SV calling methods by 0.47%-22.48% in Genotype-F1 score. Moreover, cuteSV-Trio reduces haplotype-phasing error rates by ~16% and detects ~36% more precise de novo SVs. In addition, it is well-suited for constructing comprehensive population SV atlases and high-quality reference panels, improving imputation accuracy. By dramatically reducing sequencing costs while improving detection accuracy, cuteSV-Trio provides a practical framework for trio-based and population-scale SV studies.
 
 
 ------
@@ -99,10 +99,9 @@ pip install cuteSVTrio
 2. scipy
 2. pysam
 3. Biopython
-4. cigar
-5. numpy
-6. pyvcf3
-7. scikit-learn
+4. numpy
+5. pyvcf3
+6. scikit-learn
 ```
 
 ------
@@ -111,7 +110,7 @@ pip install cuteSVTrio
 ## Usage
 
 ```
-cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <nother.sorted.bam> <output.vcf> <work_dir>
+cuteSVTrio <reference.fa> <offspring.sorted.bam> <father.sorted.bam> <mother.sorted.bam> <output.vcf> <work_dir>
 ```
 
 
@@ -270,6 +269,7 @@ v1.1.1 (September 19, 2026) :
 *Upcoming update*
 1. The *-g* parameter was added to support the transition of the HG002 gold-standard benchmark from NIST to T2T around 2025. As the NIST benchmark is now largely deprecated, this parameter will be removed in a future release.
 2. Added comprehensive null/empty-value checks and error handling for required parameters.
+3. Further optimize the time and space overhead of calling and phasing.
 
 ------
 
