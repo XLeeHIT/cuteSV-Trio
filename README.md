@@ -161,8 +161,11 @@ The output from cuteSV-Trio includes the following unique flag in vcf, with mean
 **CorrectType**:
 
 A flag indicating that a SV's genotype has been corrected using the trio-based genotype correction method specific to cuteSV-Trio.
+
 1–3: Genotype imputation for the offspring, father, and mother, respectively, performed via the "Absence of read alignments" method.
+
 4–6: Genotype imputation for the offspring, father, and mother, respectively, performed via the "No enough supporting reads" method.
+
 7–9: Genotype imputation for the offspring, father, and mother, respectively, performed via the "Excessive reference-allele reads" method.
 
 
