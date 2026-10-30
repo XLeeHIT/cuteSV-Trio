@@ -5,7 +5,7 @@
 ![Language](https://img.shields.io/badge/language-python-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-linux%20|%20macOS-brightgreen)
-[![PyPI version](https://img.shields.io/pypi/v/cuteSVTrio)](https://pypi.org/project/cuteSVTrio/1.0.0/)
+[![PyPI version](https://img.shields.io/pypi/v/cuteSVTrio)](https://pypi.org/project/cuteSVTrio/1.1.1/)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesvtrio/badges/latest_release_date.svg)](https://anaconda.org/bioconda/svpg)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/cutesvtrio/badges/downloads.svg)](https://anaconda.org/bioconda/svpg)
 
@@ -288,6 +288,8 @@ v1.1.1 (September 19, 2026) :
 1. The *-g* parameter was added to support the transition of the HG002 gold-standard benchmark from NIST to T2T around 2025. As the NIST benchmark is now largely deprecated, this parameter will be removed in a future release.
 2. Added comprehensive null/empty-value checks and error handling for required parameters.
 3. Further optimize the time and space overhead of calling and phasing.
+4. 在某些MEV的检测过程中，可能会发生同一位置的两条不同 ALT 被旧代码合并的情况。
+旧代码主要按位置、长度聚类，再生成一条共识。这容易同时造成漏掉第二条 ALT、GT 被判为纯合。可以进一步优化
 
 ------
 
