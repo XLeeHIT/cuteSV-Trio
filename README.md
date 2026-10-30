@@ -1,6 +1,6 @@
 # cuteSV-Trio: Haplotype-Resolved and *De Novo* Structural Variant Detection from Low-Coverage Long-Read Sequencing of Family Trios
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.1-blue)
 ![Language](https://img.shields.io/badge/language-shell-4EAA25)
 ![Language](https://img.shields.io/badge/language-python-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
